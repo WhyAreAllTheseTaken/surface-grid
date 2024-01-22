@@ -152,7 +152,7 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
 
     fn down(&self) -> Self {
         if self.x <= W / 2 {
-            if self.y == H - 1 {
+            if self.y== H - 1 {
                 Self {
                     x: (self.x + W / 2).rem_euclid(W),
                     y: H - 1,
@@ -228,3 +228,79 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
     }
 }
 
+#[cfg(test)]
+mod test {
+    use crate::GridPoint;
+
+    use super::RectangleSpherePoint;
+
+    #[test]
+    fn test_rect_point_up_middle() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(3, 4);
+
+        assert_eq!(RectangleSpherePoint::new(3, 3), point.up());
+    }
+    
+    #[test]
+    fn test_rect_point_up_top_left() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(0, 0);
+
+        assert_eq!(RectangleSpherePoint::new(5, 0), point.up());
+    }
+    
+    #[test]
+    fn test_rect_point_up_top_right() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(9, 0);
+
+        assert_eq!(RectangleSpherePoint::new(9, 1), point.up());
+    }
+    
+    #[test]
+    fn test_rect_point_up_bottom_left() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(0, 9);
+
+        assert_eq!(RectangleSpherePoint::new(0, 8), point.up());
+    }
+    
+    #[test]
+    fn test_rect_point_up_bottom_right() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(9, 9);
+
+        assert_eq!(RectangleSpherePoint::new(4, 9), point.up());
+    }
+    
+    #[test]
+    fn test_rect_point_down_middle() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(3, 4);
+
+        assert_eq!(RectangleSpherePoint::new(3, 5), point.down());
+    }
+    
+    #[test]
+    fn test_rect_point_down_top_left() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(0, 0);
+
+        assert_eq!(RectangleSpherePoint::new(0, 1), point.down());
+    }
+    
+    #[test]
+    fn test_rect_point_down_top_right() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(9, 0);
+
+        assert_eq!(RectangleSpherePoint::new(4, 0), point.down());
+    }
+    
+    #[test]
+    fn test_rect_point_down_bottom_left() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(0, 9);
+
+        assert_eq!(RectangleSpherePoint::new(5, 9), point.down());
+    }
+    
+    #[test]
+    fn test_rect_point_down_bottom_right() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(9, 9);
+
+        assert_eq!(RectangleSpherePoint::new(9, 8), point.down());
+    }
+}
