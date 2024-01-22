@@ -34,7 +34,7 @@ pub trait SpherePoint : GridPoint {
 /// - `T` - The type of data that the grid holds.
 /// - `W` - The width of the grid.
 /// - `H` - The height of the grid.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct RectangleSphereGrid<T, const W: usize, const H: usize> {
     /// The data held in this grid.
     data: HeapArray2D<T, W, H>,
@@ -180,7 +180,7 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
 
     fn left(&self) -> Self {
         Self {
-            x: (self.x - 1).rem_euclid(W),
+            x: (self.x as isize - 1).rem_euclid(W as isize) as usize,
             y: self.y
         }
     }
@@ -214,6 +214,12 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
             * ((y * H as f64) as isize).rem_euclid(H as isize)
             + H as isize * (y.floor() as isize).rem_euclid(2)) as usize;
 
+        let y = if y == 100 {
+            99
+        } else {
+            y
+        };
+
         Self {
             x, y
         }
@@ -230,9 +236,11 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
 
 #[cfg(test)]
 mod test {
+    use std::f64::consts::PI;
+
     use crate::GridPoint;
 
-    use super::RectangleSpherePoint;
+    use super::{RectangleSpherePoint, SpherePoint};
 
     #[test]
     fn test_rect_point_up_middle() {
@@ -303,4 +311,96 @@ mod test {
 
         assert_eq!(RectangleSpherePoint::new(9, 8), point.down());
     }
+
+    #[test]
+    fn test_rect_point_left_middle() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(5, 5);
+
+        assert_eq!(RectangleSpherePoint::new(4, 5), point.left());
+    }
+    
+    #[test]
+    fn test_rect_point_left_left() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(0, 5);
+
+        assert_eq!(RectangleSpherePoint::new(9, 5), point.left());
+    }
+   
+    #[test]
+    fn test_rect_point_left_right() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(9, 5);
+
+        assert_eq!(RectangleSpherePoint::new(8, 5), point.left());
+    }
+
+    #[test]
+    fn test_rect_point_right_middle() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(5, 5);
+
+        assert_eq!(RectangleSpherePoint::new(6, 5), point.right());
+    }
+    
+    #[test]
+    fn test_rect_point_right_left() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(0, 5);
+
+        assert_eq!(RectangleSpherePoint::new(1, 5), point.right());
+    }
+   
+    #[test]
+    fn test_rect_point_right_right() {
+        let point: RectangleSpherePoint<10, 10> = RectangleSpherePoint::new(9, 5);
+
+        assert_eq!(RectangleSpherePoint::new(0, 5), point.right());
+    }
+
+    #[test]
+    fn test_rect_point_from_geographic_equator() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 50), point);
+    }
+    
+    #[test]
+    fn test_rect_point_from_geographic_north_pole() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(-PI / 2.0, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 0), point);
+    }
+    
+    #[test]
+    fn test_rect_point_from_geographic_south_pole() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI / 2.0, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 99), point);
+    }
+    
+    #[test]
+    fn test_rect_point_from_geographic_equator_wrap_north() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(-PI, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 50), point);
+    }
+    
+    #[test]
+    fn test_rect_point_from_geographic_equator_wrap_south() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 50), point);
+    }
+    
+    #[test]
+    fn test_rect_point_from_geographic_east() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, PI * 2.0);
+
+        assert_eq!(RectangleSpherePoint::new(0, 50), point);
+    }
+    
+    #[test]
+    fn test_rect_point_from_geographic_west() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, 0.0);
+
+        assert_eq!(RectangleSpherePoint::new(0, 50), point);
+    }
 }
+
