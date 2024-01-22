@@ -2,7 +2,7 @@
 
 use std::ops::{IndexMut, Index};
 
-use nalgebra::Point3;
+pub mod sphere;
 
 /// A grid wrapped around a surface.
 pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T> {
@@ -10,7 +10,9 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
     type Point: GridPoint;
 
     /// Creates a new surface grid by calling the specified function for each point in the grid.
-    fn from_fn<F: FnMut(Self::Point) -> T>(f: F) -> Self;
+    ///
+    /// - `f` - The function to apply.
+    fn from_fn<F: FnMut(&Self::Point) -> T>(f: F) -> Self;
 }
 
 /// A point on a surface grid.
@@ -35,6 +37,8 @@ pub trait GridPoint : Eq + PartialEq + Clone {
     fn right(&self) -> Self;
 
     /// Gets the position of the point in 3D space.
-    fn position(&self) -> Point3<f64>;
+    ///
+    /// - `scale` - The scale of the 3D object.
+    fn position(&self, scale: f64) -> (f64, f64, f64);
 }
 
