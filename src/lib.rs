@@ -5,7 +5,7 @@ use std::ops::{IndexMut, Index};
 pub mod sphere;
 
 /// A grid wrapped around a surface.
-pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T> {
+pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T> + IntoIterator<Item = (Self::Point, T)> {
     /// The type of a point on this grid.
     type Point: GridPoint;
 
@@ -13,6 +13,12 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
     ///
     /// - `f` - The function to apply.
     fn from_fn<F: FnMut(&Self::Point) -> T>(f: F) -> Self;
+
+    /// Iterates over the points in this grid and their values.
+    fn iter<'a>(&'a self) -> impl Iterator<Item = (Self::Point, &'a T)> where T: 'a;
+
+    /// Iterates over the points in this grid.
+    fn points(&self) -> impl Iterator<Item = Self::Point>;
 }
 
 /// A point on a surface grid.

@@ -1,6 +1,6 @@
 //! A module containing grids wrapped around spheres.
 
-use std::{f64::consts::PI, ops::{Index, IndexMut}};
+use std::{f64::consts::PI, ops::{Index, IndexMut}, vec};
 
 use static_array::HeapArray2D;
 
@@ -52,6 +52,16 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
             })
         }
     }
+
+    fn iter<'a>(&'a self) -> impl Iterator<Item = (RectangleSpherePoint<W, H>, &'a T)> where T: 'a {
+        (0..H).zip(0..W)
+            .map(|(y, x)| (RectangleSpherePoint::new(x, y), &self.data[y][x]))
+    }
+
+    fn points(&self) -> impl Iterator<Item = Self::Point> {
+        (0..H).zip(0..W)
+            .map(|(y, x)| RectangleSpherePoint::new(x, y))
+    }
 }
 
 impl <T, const W: usize, const H: usize> Index<RectangleSpherePoint<W, H>> for RectangleSphereGrid<T, W, H> {
@@ -65,6 +75,24 @@ impl <T, const W: usize, const H: usize> Index<RectangleSpherePoint<W, H>> for R
 impl <T, const W: usize, const H: usize> IndexMut<RectangleSpherePoint<W, H>> for RectangleSphereGrid<T, W, H> {
     fn index_mut(&mut self, index: RectangleSpherePoint<W, H>) -> &mut Self::Output {
         &mut self.data[index.y][index.x]
+    }
+}
+
+impl <T, const W: usize, const H: usize> IntoIterator for RectangleSphereGrid<T, W, H> {
+    type Item = (RectangleSpherePoint<W, H>, T);
+
+    type IntoIter = vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let data: Vec<_> = self.data.into_iter()
+            .enumerate()
+            .flat_map(|(y, subarray)| subarray.into_iter()
+                      .enumerate()
+                      .map(move |(x, value)| (RectangleSpherePoint::new(x, y), value))
+                      )
+            .collect();
+
+        data.into_iter()
     }
 }
 
