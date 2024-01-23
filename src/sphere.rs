@@ -125,7 +125,7 @@ impl <const W: usize, const H: usize> RectangleSpherePoint<W, H> {
 
 impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
     fn up(&self) -> Self {
-        if self.x > W as u32 / 2 {
+        if self.x >= W as u32 / 2 {
             if self.y == H as u32 - 1 {
                 Self {
                     x: (self.x + W as u32 / 2).rem_euclid(W as u32),
@@ -153,8 +153,8 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
     }
 
     fn down(&self) -> Self {
-        if self.x <= W as u32 / 2 {
-            if self.y== H as u32 - 1 {
+        if self.x < W as u32 / 2 {
+            if self.y == H as u32 - 1 {
                 Self {
                     x: (self.x + W as u32 / 2).rem_euclid(W as u32),
                     y: H as u32 - 1,
@@ -532,6 +532,34 @@ mod test {
         let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, 0.0);
 
         assert_eq!(RectangleSpherePoint::new(0, 50), point);
+    }
+
+    #[test]
+    fn test_rect_point_up_loop() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 3);
+
+        assert_eq!(start, start.up().up().up().up().up().up().up().up().up().up());
+    }
+    
+    #[test]
+    fn test_rect_point_down_loop() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(5, 3);
+
+        assert_eq!(start, start.down().down().down().down().down().down().down().down().down().down());
+    }
+    
+    #[test]
+    fn test_rect_point_left_loop() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 3);
+
+        assert_eq!(start, start.left().left().left().left().left().left().left().left().left().left());
+    }
+    
+    #[test]
+    fn test_rect_point_right_loop() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 3);
+
+        assert_eq!(start, start.right().right().right().right().right().right().right().right().right().right());
     }
 }
 
