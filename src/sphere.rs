@@ -252,6 +252,114 @@ pub struct CubeSphereGrid<T, const S: usize> {
     bottom: HeapArray2D<T, S, S>,
 }
 
+impl <T, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
+    type Point = CubeSpherePoint<S>;
+
+    fn from_fn<F: FnMut(&Self::Point) -> T>(mut f: F) -> Self {
+        Self {
+            top: HeapArray2D::from_fn(|y, x| f(&CubeSpherePoint::new(CubeFace::Top, x as u16, y as u16))),
+            left: HeapArray2D::from_fn(|y, x| f(&CubeSpherePoint::new(CubeFace::Left, x as u16, y as u16))),
+            front: HeapArray2D::from_fn(|y, x| f(&CubeSpherePoint::new(CubeFace::Front, x as u16, y as u16))),
+            right: HeapArray2D::from_fn(|y, x| f(&CubeSpherePoint::new(CubeFace::Right, x as u16, y as u16))),
+            back: HeapArray2D::from_fn(|y, x| f(&CubeSpherePoint::new(CubeFace::Back, x as u16, y as u16))),
+            bottom: HeapArray2D::from_fn(|y, x| f(&CubeSpherePoint::new(CubeFace::Bottom, x as u16, y as u16))),
+        }
+    }
+
+    fn iter<'a>(&'a self) -> impl Iterator<Item = (Self::Point, &'a T)> where T: 'a {
+        self.points()
+            .map(|point| (point, &self[point]))
+    }
+
+    fn points(&self) -> impl Iterator<Item = Self::Point> {
+        [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ].into_iter().zip(0..S).zip(0..S).map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
+    }
+}
+
+impl <T, const S: usize> Index<CubeSpherePoint<S>> for CubeSphereGrid<T, S> {
+    type Output = T;
+
+    fn index(&self, index: CubeSpherePoint<S>) -> &Self::Output {
+        match index.face {
+            CubeFace::Front => &self.front[index.y as usize][index.x as usize],
+            CubeFace::Back => &self.back[index.y as usize][index.x as usize],
+            CubeFace::Left => &self.left[index.y as usize][index.x as usize],
+            CubeFace::Right => &self.right[index.y as usize][index.x as usize],
+            CubeFace::Top => &self.top[index.y as usize][index.x as usize],
+            CubeFace::Bottom => &self.bottom[index.y as usize][index.x as usize],
+        }
+    }
+}
+
+impl <T, const S: usize> IndexMut<CubeSpherePoint<S>> for CubeSphereGrid<T, S> {
+    fn index_mut(&mut self, index: CubeSpherePoint<S>) -> &mut Self::Output {
+        match index.face {
+            CubeFace::Front => &mut self.front[index.y as usize][index.x as usize],
+            CubeFace::Back => &mut self.back[index.y as usize][index.x as usize],
+            CubeFace::Left => &mut self.left[index.y as usize][index.x as usize],
+            CubeFace::Right => &mut self.right[index.y as usize][index.x as usize],
+            CubeFace::Top => &mut self.top[index.y as usize][index.x as usize],
+            CubeFace::Bottom => &mut self.bottom[index.y as usize][index.x as usize],
+        }
+    }
+}
+
+impl <T, const S: usize> IntoIterator for CubeSphereGrid<T, S> {
+    type Item = (CubeSpherePoint<S>, T);
+
+    type IntoIter = vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let mut data: Vec<_> = self.top.into_iter()
+            .enumerate()
+            .flat_map(|(y, subarray)| subarray.into_iter()
+                        .enumerate()
+                        .map(move |(x, value)| (CubeSpherePoint::new(CubeFace::Top, x as u16, y as u16), value))
+                      )
+            .collect();
+
+        data.extend(self.left.into_iter()
+                    .enumerate()
+                    .flat_map(|(y, subarray)| subarray.into_iter()
+                              .enumerate()
+                              .map(move |(x, value)| (CubeSpherePoint::new(CubeFace::Left, x as u16, y as u16), value))
+                              ));
+        data.extend(self.front.into_iter()
+                    .enumerate()
+                    .flat_map(|(y, subarray)| subarray.into_iter()
+                              .enumerate()
+                              .map(move |(x, value)| (CubeSpherePoint::new(CubeFace::Front, x as u16, y as u16), value))
+                              ));
+        data.extend(self.right.into_iter()
+                    .enumerate()
+                    .flat_map(|(y, subarray)| subarray.into_iter()
+                              .enumerate()
+                              .map(move |(x, value)| (CubeSpherePoint::new(CubeFace::Right, x as u16, y as u16), value))
+                              ));
+        data.extend(self.back.into_iter()
+                    .enumerate()
+                    .flat_map(|(y, subarray)| subarray.into_iter()
+                              .enumerate()
+                              .map(move |(x, value)| (CubeSpherePoint::new(CubeFace::Back, x as u16, y as u16), value))
+                              ));
+        data.extend(self.bottom.into_iter()
+                    .enumerate()
+                    .flat_map(|(y, subarray)| subarray.into_iter()
+                              .enumerate()
+                              .map(move |(x, value)| (CubeSpherePoint::new(CubeFace::Bottom, x as u16, y as u16), value))
+                              ));
+
+        data.into_iter()
+    }
+}
+
 /// A point on a `CubeSphereGrid`.
 ///
 /// # Constant Parameters
@@ -472,7 +580,7 @@ enum CubeFace {
 mod test {
     use std::f64::consts::PI;
 
-    use crate::{GridPoint, SurfaceGrid};
+    use crate::{GridPoint, SurfaceGrid, sphere::{CubeSpherePoint, CubeFace, CubeSphereGrid}};
 
     use super::{RectangleSpherePoint, SpherePoint, RectangleSphereGrid};
 
@@ -726,6 +834,249 @@ mod test {
         let grid: RectangleSphereGrid<u32, 200, 100> = RectangleSphereGrid::from_fn(|point| point.x + point.y);
 
         assert_eq!(15, grid[RectangleSpherePoint::new(5, 10)]);
+    }
+    
+    #[test]
+    fn test_cube_point_up_middle() {
+        let point: CubeSpherePoint<5> = CubeSpherePoint::new(CubeFace::Front, 3, 4);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Front, 3, 3), point.up());
+    }
+    
+    #[test]
+    fn test_cube_point_up_top() {
+        let point: CubeSpherePoint<5> = CubeSpherePoint::new(CubeFace::Front, 0, 0);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Top, 0, 4), point.up());
+    }
+    
+    #[test]
+    fn test_cube_point_up_bottom() {
+        let point: CubeSpherePoint<5> = CubeSpherePoint::new(CubeFace::Front, 0, 4);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Front, 0, 3), point.up());
+    }
+    
+    #[test]
+    fn test_cube_point_down_middle() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 3, 4);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Front, 3, 5), point.down());
+    }
+    
+    #[test]
+    fn test_cube_point_down_top() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 0, 0);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Front, 0, 1), point.down());
+    }
+    
+    #[test]
+    fn test_cube_point_down_bottom() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 0, 9);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Bottom, 0, 0), point.down());
+    }
+
+    #[test]
+    fn test_cube_point_left_middle() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Left, 5, 5);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Left, 4, 5), point.left());
+    }
+    
+    #[test]
+    fn test_cube_point_left_left() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Left, 0, 5);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 0, 5), point.left());
+    }
+   
+    #[test]
+    fn test_cube_point_left_right() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Left, 9, 5);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Left, 8, 5), point.left());
+    }
+
+    #[test]
+    fn test_cube_point_right_middle() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Right, 5, 5);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Right, 6, 5), point.right());
+    }
+    
+    #[test]
+    fn test_cube_point_right_left() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Right, 0, 5);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Right, 1, 5), point.right());
+    }
+   
+    #[test]
+    fn test_cube_point_right_right() {
+        let point: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Right, 9, 5);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 9, 5), point.right());
+    }
+
+    #[test]
+    fn test_cube_point_from_geographic_equator() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 50), point);
+        todo!();
+    }
+    
+    #[test]
+    fn test_cube_point_from_geographic_north_pole() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(-PI / 2.0, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 0), point);
+        todo!();
+    }
+    
+    #[test]
+    fn test_cube_point_from_geographic_south_pole() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI / 2.0, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 99), point);
+        todo!();
+    }
+    
+    #[test]
+    fn test_cube_point_from_geographic_equator_wrap_north() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(-PI, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 50), point);
+        todo!();
+    }
+    
+    #[test]
+    fn test_cube_point_from_geographic_equator_wrap_south() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI, PI);
+
+        assert_eq!(RectangleSpherePoint::new(50, 50), point);
+        todo!();
+    }
+    
+    #[test]
+    fn test_cube_point_from_geographic_east() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, PI * 2.0);
+
+        assert_eq!(RectangleSpherePoint::new(0, 50), point);
+        todo!();
+    }
+    
+    #[test]
+    fn test_cube_point_from_geographic_west() {
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(0.0, 0.0);
+
+        assert_eq!(RectangleSpherePoint::new(0, 50), point);
+        todo!();
+    }
+
+    #[test]
+    fn test_cube_point_up_loop() {
+        let start: CubeSpherePoint<3> = CubeSpherePoint::new(CubeFace::Bottom, 1, 2);
+
+        assert_eq!(start, start.up().up().up()
+                   .up().up().up()
+                   .up().up().up()
+                   .up().up().up());
+    }
+    
+    #[test]
+    fn test_cube_point_down_loop() {
+        let start: CubeSpherePoint<3> = CubeSpherePoint::new(CubeFace::Top, 0, 0);
+
+        assert_eq!(start, start.down().down().down()
+                   .down().down().down()
+                   .down().down().down()
+                   .down().down().down());
+    }
+    
+    #[test]
+    fn test_cube_point_left_loop() {
+        let start: CubeSpherePoint<3> = CubeSpherePoint::new(CubeFace::Back, 1, 0);
+
+        assert_eq!(start, start.left().left().left()
+                   .left().left().left()
+                   .left().left().left()
+                   .left().left().left());
+    }
+    
+    #[test]
+    fn test_cube_point_right_loop() {
+        let start: CubeSpherePoint<3> = CubeSpherePoint::new(CubeFace::Front, 0, 2);
+
+        assert_eq!(start, start.right().right().right()
+                   .right().right().right()
+                   .right().right().right()
+                   .right().right().right());
+    }
+
+    #[test]
+    fn test_cube_point_up_inverse_middle() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 5, 3);
+
+        assert_eq!(start, start.up().down());
+    }
+    
+    #[test]
+    fn test_cube_point_down_inverse_middle() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 5, 3);
+
+        assert_eq!(start, start.down().up());
+    }
+    
+    #[test]
+    fn test_cube_point_left_inverse_middle() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 5, 3);
+
+        assert_eq!(start, start.left().right());
+    }
+    
+    #[test]
+    fn test_cube_point_right_inverse_middle() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 5, 3);
+
+        assert_eq!(start, start.right().left());
+    }
+    
+    #[test]
+    fn test_cube_point_up_inverse_edge() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 0, 0);
+
+        assert_eq!(start, start.up().down());
+    }
+    
+    #[test]
+    fn test_cube_point_down_inverse_edge() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 0, 9);
+
+        assert_eq!(start, start.down().up());
+    }
+    
+    #[test]
+    fn test_cube_point_left_inverse_edge() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 0, 0);
+
+        assert_eq!(start, start.left().right());
+    }
+    
+    #[test]
+    fn test_cube_point_right_inverse_edge() {
+        let start: CubeSpherePoint<10> = CubeSpherePoint::new(CubeFace::Front, 9, 0);
+
+        assert_eq!(start, start.right().left());
+    }
+
+    #[test]
+    fn test_cube_from_fn() {
+        let grid: CubeSphereGrid<u16, 100> = CubeSphereGrid::from_fn(|point| point.x + point.y);
+
+        assert_eq!(15, grid[CubeSpherePoint::new(CubeFace::Front, 5, 10)]);
     }
 }
 
