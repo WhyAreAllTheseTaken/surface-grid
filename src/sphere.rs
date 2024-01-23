@@ -32,6 +32,8 @@ pub trait SpherePoint : GridPoint {
 ///
 /// # Type Parameters
 /// - `T` - The type of data that the grid holds.
+///
+/// # Constant Parameters
 /// - `W` - The width of the grid.
 /// - `H` - The height of the grid.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -98,7 +100,7 @@ impl <T, const W: usize, const H: usize> IntoIterator for RectangleSphereGrid<T,
 
 /// A point on a `RectangleSphereGrid`.
 ///
-/// # Type Parameters
+/// # Constant Parameters
 /// - `W` - The width of the grid.
 /// - `H` - The height of the grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -110,7 +112,7 @@ pub struct RectangleSpherePoint<const W: usize, const H: usize> {
 }
 
 impl <const W: usize, const H: usize> RectangleSpherePoint<W, H> {
-    pub fn new(x: u32, y: u32) -> Self {
+    fn new(x: u32, y: u32) -> Self {
         let x = (x + y / H as u32).rem_euclid(W as u32);
         let y = y.rem_euclid(H as u32);
 
@@ -232,6 +234,135 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
     fn longitude(&self) -> f64 {
         self.x as f64 / W as f64 * PI * 2.0
     }
+}
+
+/// A grid that wraps a cube around a sphere in order to determine grid positions.
+///
+/// # Type Parameters.
+/// - `T` - The type of element stored in each grid cell.
+///
+/// # Constant Parameters
+/// - `S` - The size of each side of each face.
+pub struct CubeSphereGrid<T, const S: usize> {
+    top: HeapArray2D<T, S, S>,
+    left: HeapArray2D<T, S, S>,
+    front: HeapArray2D<T, S, S>,
+    right: HeapArray2D<T, S, S>,
+    back: HeapArray2D<T, S, S>,
+    bottom: HeapArray2D<T, S, S>,
+}
+
+/// A point on a `CubeSphereGrid`.
+///
+/// # Constant Parameters
+/// - `S` - The size of each side of each face.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CubeSpherePoint<const S: usize> {
+    face: CubeFace,
+    x: u16,
+    y: u16,
+}
+
+impl <const S: usize> CubeSpherePoint<S> {
+    /// Creates a new `CubeSpherePoint`.
+    ///
+    /// - `face` - The face on which the point lies.
+    /// - `x` - The X position on the face.
+    /// - `y` - The Y position on the face.
+    fn new(face: CubeFace, x: u16, y: u16) -> Self {
+        Self {
+            face, x, y
+        }
+    }
+}
+
+impl <const S: usize> GridPoint for CubeSpherePoint<S> {
+    fn up(&self) -> Self {
+        match self.face {
+            CubeFace::Front => if self.y == 0 {
+                Self {
+                    face: CubeFace::Top,
+                    x: self.x,
+                    y: S as u16 - 1,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Front,
+                    x: self.x,
+                    y: self.y - 1,
+                }
+            },
+            CubeFace::Back => if self.y == 0 {
+                Self {
+                    face: CubeFace::Bottom,
+                    x: self.x,
+                    y: S as u16 - 1,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Back,
+                    x: self.x,
+                    y: self.y - 1,
+                }
+            },
+            CubeFace::Left => todo!(),
+            CubeFace::Right => todo!(),
+            CubeFace::Top => if self.y == 0 {
+                Self {
+                    face: CubeFace::Back,
+                    x: self.x,
+                    y: S as u16 - 1,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Top,
+                    x: self.x,
+                    y: self.y - 1,
+                }
+            },
+            CubeFace::Bottom => if self.y == 0 {
+                Self {
+                    face: CubeFace::Front,
+                    x: self.x,
+                    y: S as u16 - 1,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Bottom,
+                    x: self.x,
+                    y: self.y - 1,
+                }
+            },
+        }
+    }
+
+    fn down(&self) -> Self {
+        todo!()
+    }
+
+    fn left(&self) -> Self {
+        todo!()
+    }
+
+    fn right(&self) -> Self {
+        todo!()
+    }
+
+    fn position(&self, scale: f64) -> (f64, f64, f64) {
+        todo!()
+    }
+}
+
+/// A face of a cube.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)] // For better alignment.
+enum CubeFace {
+    Front,
+    Back,
+    Left,
+    Right,
+    Top,
+    Bottom,
 }
 
 #[cfg(test)]
