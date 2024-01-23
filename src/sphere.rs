@@ -369,9 +369,9 @@ enum CubeFace {
 mod test {
     use std::f64::consts::PI;
 
-    use crate::GridPoint;
+    use crate::{GridPoint, SurfaceGrid};
 
-    use super::{RectangleSpherePoint, SpherePoint};
+    use super::{RectangleSpherePoint, SpherePoint, RectangleSphereGrid};
 
     #[test]
     fn test_rect_point_up_middle() {
@@ -560,6 +560,13 @@ mod test {
         let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 3);
 
         assert_eq!(start, start.right().right().right().right().right().right().right().right().right().right());
+    }
+
+    #[test]
+    fn test_rect_from_fn() {
+        let grid: RectangleSphereGrid<u32, 200, 100> = RectangleSphereGrid::from_fn(|point| point.x + point.y);
+
+        assert_eq!(15, grid[RectangleSpherePoint::new(5, 10)]);
     }
 }
 
