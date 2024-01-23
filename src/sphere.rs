@@ -46,7 +46,7 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
     fn from_fn<F: FnMut(&Self::Point) -> T>(mut f: F) -> Self {
         Self {
             data: HeapArray2D::from_fn(|y, x| {
-                let point = RectangleSpherePoint::new(x, y);
+                let point = RectangleSpherePoint::new(x as u32, y as u32);
 
                 f(&point)
             })
@@ -55,12 +55,12 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
 
     fn iter<'a>(&'a self) -> impl Iterator<Item = (RectangleSpherePoint<W, H>, &'a T)> where T: 'a {
         (0..H).zip(0..W)
-            .map(|(y, x)| (RectangleSpherePoint::new(x, y), &self.data[y][x]))
+            .map(|(y, x)| (RectangleSpherePoint::new(x as u32, y as u32), &self.data[y][x]))
     }
 
     fn points(&self) -> impl Iterator<Item = Self::Point> {
         (0..H).zip(0..W)
-            .map(|(y, x)| RectangleSpherePoint::new(x, y))
+            .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
     }
 }
 
@@ -68,13 +68,13 @@ impl <T, const W: usize, const H: usize> Index<RectangleSpherePoint<W, H>> for R
     type Output = T;
 
     fn index(&self, index: RectangleSpherePoint<W, H>) -> &Self::Output {
-        &self.data[index.y][index.x]
+        &self.data[index.y as usize][index.x as usize]
     }
 }
 
 impl <T, const W: usize, const H: usize> IndexMut<RectangleSpherePoint<W, H>> for RectangleSphereGrid<T, W, H> {
     fn index_mut(&mut self, index: RectangleSpherePoint<W, H>) -> &mut Self::Output {
-        &mut self.data[index.y][index.x]
+        &mut self.data[index.y as usize][index.x as usize]
     }
 }
 
@@ -88,7 +88,7 @@ impl <T, const W: usize, const H: usize> IntoIterator for RectangleSphereGrid<T,
             .enumerate()
             .flat_map(|(y, subarray)| subarray.into_iter()
                       .enumerate()
-                      .map(move |(x, value)| (RectangleSpherePoint::new(x, y), value))
+                      .map(move |(x, value)| (RectangleSpherePoint::new(x as u32, y as u32), value))
                       )
             .collect();
 
@@ -104,15 +104,15 @@ impl <T, const W: usize, const H: usize> IntoIterator for RectangleSphereGrid<T,
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RectangleSpherePoint<const W: usize, const H: usize> {
     /// The X position in the grid.
-    x: usize,
+    x: u32,
     /// The Y position in the grid.
-    y: usize,
+    y: u32,
 }
 
 impl <const W: usize, const H: usize> RectangleSpherePoint<W, H> {
-    pub fn new(x: usize, y: usize) -> Self {
-        let x = (x + y / H).rem_euclid(W);
-        let y = y.rem_euclid(H);
+    pub fn new(x: u32, y: u32) -> Self {
+        let x = (x + y / H as u32).rem_euclid(W as u32);
+        let y = y.rem_euclid(H as u32);
 
         Self {
             x,
@@ -123,11 +123,11 @@ impl <const W: usize, const H: usize> RectangleSpherePoint<W, H> {
 
 impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
     fn up(&self) -> Self {
-        if self.x > W / 2 {
-            if self.y == H - 1 {
+        if self.x > W as u32 / 2 {
+            if self.y == H as u32 - 1 {
                 Self {
-                    x: (self.x + W / 2).rem_euclid(W),
-                    y: H - 1,
+                    x: (self.x + W as u32 / 2).rem_euclid(W as u32),
+                    y: H as u32 - 1,
                 }
             } else {
                 Self {
@@ -138,7 +138,7 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
         } else {
             if self.y == 0 {
                 Self {
-                    x: (self.x + W / 2).rem_euclid(W),
+                    x: (self.x + W as u32 / 2).rem_euclid(W as u32),
                     y: 0,
                 }
             } else {
@@ -151,11 +151,11 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
     }
 
     fn down(&self) -> Self {
-        if self.x <= W / 2 {
-            if self.y== H - 1 {
+        if self.x <= W as u32 / 2 {
+            if self.y== H as u32 - 1 {
                 Self {
-                    x: (self.x + W / 2).rem_euclid(W),
-                    y: H - 1,
+                    x: (self.x + W as u32 / 2).rem_euclid(W as u32),
+                    y: H as u32 - 1,
                 }
             } else {
                 Self {
@@ -166,7 +166,7 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
         } else {
             if self.y == 0 {
                 Self {
-                    x: (self.x + W / 2).rem_euclid(W),
+                    x: (self.x + W as u32 / 2).rem_euclid(W as u32),
                     y: 0,
                 }
             } else {
@@ -180,14 +180,14 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
 
     fn left(&self) -> Self {
         Self {
-            x: (self.x as isize - 1).rem_euclid(W as isize) as usize,
+            x: (self.x as i32 - 1).rem_euclid(W as i32) as u32,
             y: self.y
         }
     }
 
     fn right(&self) -> Self {
         Self {
-            x: (self.x + 1).rem_euclid(W),
+            x: (self.x + 1).rem_euclid(W as u32),
             y: self.y
         }
     }
@@ -207,12 +207,12 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
 
 impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H> {
     fn from_geographic(latitude: f64, longitude: f64) -> Self {
-        let x = ((longitude / (PI * 2.0) * W as f64) as isize).rem_euclid(W as isize) as usize;
+        let x = ((longitude / (PI * 2.0) * W as f64) as i32).rem_euclid(W as i32) as u32;
         let y = (latitude + PI / 2.0) / PI;
 
-        let y = ((2 * (y.ceil() as isize).rem_euclid(2) - 1)
-            * ((y * H as f64) as isize).rem_euclid(H as isize)
-            + H as isize * (y.floor() as isize).rem_euclid(2)) as usize;
+        let y = ((2 * (y.ceil() as i32).rem_euclid(2) - 1)
+            * ((y * H as f64) as i32).rem_euclid(H as i32)
+            + H as i32 * (y.floor() as i32).rem_euclid(2)) as u32;
 
         let y = if y == 100 {
             99
