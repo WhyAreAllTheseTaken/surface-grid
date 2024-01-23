@@ -666,6 +666,62 @@ mod test {
     }
 
     #[test]
+    fn test_rect_point_up_inverse_middle() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(5, 3);
+
+        assert_eq!(start, start.up().down());
+    }
+    
+    #[test]
+    fn test_rect_point_down_inverse_middle() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(5, 3);
+
+        assert_eq!(start, start.down().up());
+    }
+    
+    #[test]
+    fn test_rect_point_left_inverse_middle() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(5, 3);
+
+        assert_eq!(start, start.left().right());
+    }
+    
+    #[test]
+    fn test_rect_point_right_inverse_middle() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(5, 3);
+
+        assert_eq!(start, start.right().left());
+    }
+    
+    #[test]
+    fn test_rect_point_up_inverse_edge() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 0);
+
+        assert_eq!(start, start.up().down());
+    }
+    
+    #[test]
+    fn test_rect_point_down_inverse_edge() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 4);
+
+        assert_eq!(start, start.down().up());
+    }
+    
+    #[test]
+    fn test_rect_point_left_inverse_edge() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(0, 0);
+
+        assert_eq!(start, start.left().right());
+    }
+    
+    #[test]
+    fn test_rect_point_right_inverse_edge() {
+        let start: RectangleSpherePoint<10, 5> = RectangleSpherePoint::new(9, 0);
+
+        assert_eq!(start, start.right().left());
+    }
+
+    #[test]
     fn test_rect_from_fn() {
         let grid: RectangleSphereGrid<u32, 200, 100> = RectangleSphereGrid::from_fn(|point| point.x + point.y);
 
