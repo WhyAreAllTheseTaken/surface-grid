@@ -718,21 +718,112 @@ impl <const S: usize> GridPoint for CubeSpherePoint<S> {
     }
 
     fn position(&self, scale: f64) -> (f64, f64, f64) {
-        todo!()
+        let x = self.x as f64;
+        let y = self.y as f64;
+
+        let (x, y, z) = match self.face {
+            CubeFace::Front => (x * 2.0 - S as f64, y * 2.0 - S as f64, S as f64),
+            CubeFace::Back => (x * 2.0 - S as f64, y * 2.0 - S as f64, -(S as f64)),
+            CubeFace::Left => (-(S as f64), y * 2.0 - S as f64, x * 2.0 -(S as f64)),
+            CubeFace::Right => (-(S as f64), y * 2.0 - S as f64, S as f64 - x * 2.0),
+            CubeFace::Top => (x * 2.0 - S as f64, S as f64, y * 2.0 - S as f64),
+            CubeFace::Bottom => (x * 2.0 - S as f64, S as f64, S as f64 - y * 2.0),
+        };
+
+        let length = (x * x + y * y + z * z).sqrt();
+
+        (x / length * scale, y / length * scale, z / length * scale)
     }
 }
 
 impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
     fn from_geographic(latitude: f64, longitude: f64) -> Self {
-        todo!()
+        let y = latitude.sin() * S as f64;
+
+        let radius = latitude.cos() * S as f64;
+
+        let x = radius * longitude.sin();
+        let z = radius * longitude.cos();
+
+        let latitude = latitude.rem_euclid(2.0 * PI);
+        let longitude = longitude.rem_euclid(2.0 * PI);
+
+        let latitude = if latitude > 3.0 * PI / 2.0 {
+            latitude - 2.0 * PI
+        } else if latitude > PI / 2.0 {
+            latitude - PI
+        } else {
+            latitude
+        };
+
+        let face = if latitude > PI / 4.0 {
+            CubeFace::Top
+        } else if latitude < -PI / 4.0 {
+            CubeFace::Bottom
+        } else if longitude > PI / 4.0 + 3.0 * PI / 2.0 {
+            CubeFace::Front
+        } else if longitude > PI / 4.0 + 2.0 * PI / 2.0 {
+            CubeFace::Left
+        } else if longitude > PI / 4.0 + PI / 2.0 {
+            CubeFace::Back
+        } else if longitude > PI / 4.0 {
+            CubeFace::Right
+        } else {
+            CubeFace::Front
+        };
+
+        match face {
+            CubeFace::Front => {
+                let x2 = (x + S as f64) / 2.0;
+                let y2 = (y + S as f64) / 2.0;
+
+                CubeSpherePoint::new(CubeFace::Front, x2 as u16, y2 as u16)
+            },
+            CubeFace::Back => {
+                let x2 = (x + S as f64) / 2.0;
+                let y2 = (y + S as f64) / 2.0;
+                
+                CubeSpherePoint::new(CubeFace::Back, x2 as u16, y2 as u16)
+            },
+            CubeFace::Left => {
+                let x2 = (z + S as f64) / 2.0;
+                let y2 = (y + S as f64) / 2.0;
+                
+                CubeSpherePoint::new(CubeFace::Left, x2 as u16, y2 as u16)
+            },
+            CubeFace::Right => {
+                let x2 = (S as f64 - z) / 2.0;
+                let y2 = (y + S as f64) / 2.0;
+                
+                CubeSpherePoint::new(CubeFace::Right, x2 as u16, y2 as u16)
+            },
+            CubeFace::Top => {
+                let x2 = (x + S as f64) / 2.0;
+                let y2 = (z + S as f64) / 2.0;
+                
+                CubeSpherePoint::new(CubeFace::Top, x2 as u16, y2 as u16)
+            },
+            CubeFace::Bottom => {
+                let x2 = (x + S as f64) / 2.0;
+                let y2 = (S as f64 - z) / 2.0;
+                
+                CubeSpherePoint::new(CubeFace::Bottom, x2 as u16, y2 as u16)
+            },
+        }
     }
 
     fn latitude(&self) -> f64 {
-        todo!()
+        let (x, y, z) = self.position(1.0);
+
+        let distance = (x * x + z * z).sqrt();
+
+        y.atan2(distance)
     }
 
     fn longitude(&self) -> f64 {
-        todo!()
+        let (x, _, z) = self.position(1.0);
+
+        z.atan2(x)
     }
 }
 
