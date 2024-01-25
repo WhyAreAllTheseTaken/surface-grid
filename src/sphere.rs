@@ -552,11 +552,169 @@ impl <const S: usize> GridPoint for CubeSpherePoint<S> {
     }
 
     fn left(&self) -> Self {
-        todo!()
+        match self.face {
+            CubeFace::Front => if self.x == 0 {
+                Self {
+                    face: CubeFace::Left,
+                    x: S as u16 - 1,
+                    y: self.y
+                }
+            } else {
+                Self {
+                    face: CubeFace::Front,
+                    x: self.x - 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Back => if self.x == S as u16 - 1 {
+                Self {
+                    face: CubeFace::Right,
+                    x: S as u16 - 1,
+                    y: self.y
+                }
+            } else {
+                Self {
+                    face: CubeFace::Back,
+                    x: self.x + 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Left => if self.x == 0 {
+                Self {
+                    face: CubeFace::Back,
+                    x: 0,
+                    y: self.y,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Left,
+                    x: self.x - 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Right => if self.x == 0 {
+                Self {
+                    face: CubeFace::Front,
+                    x: S as u16 - 1,
+                    y: self.y
+                }
+            } else {
+                Self {
+                    face: CubeFace::Right,
+                    x: self.x - 1,
+                    y: self.y,
+                }
+            },
+            CubeFace::Top => if self.x == 0 {
+                Self {
+                    face: CubeFace::Left,
+                    x: self.y,
+                    y: 0,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Top,
+                    x: self.x - 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Bottom => if self.x == 0 {
+                Self {
+                    face: CubeFace::Left,
+                    x: self.y,
+                    y: S as u16 - 1,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Bottom,
+                    x: self.x - 1,
+                    y: self.y
+                }
+            },
+        }
     }
 
     fn right(&self) -> Self {
-        todo!()
+        match self.face {
+            CubeFace::Front => if self.x == S as u16 - 1 {
+                Self {
+                    face: CubeFace::Right,
+                    x: 0,
+                    y: self.y
+                }
+            } else {
+                Self {
+                    face: CubeFace::Front,
+                    x: self.x + 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Back => if self.x == 0 {
+                Self {
+                    face: CubeFace::Left,
+                    x: 0,
+                    y: self.y
+                }
+            } else {
+                Self {
+                    face: CubeFace::Back,
+                    x: self.x - 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Left => if self.x == S as u16 - 1 {
+                Self {
+                    face: CubeFace::Front,
+                    x: 0,
+                    y: self.y,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Left,
+                    x: self.x + 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Right => if self.x == S as u16 - 1 {
+                Self {
+                    face: CubeFace::Back,
+                    x: S as u16 - 1,
+                    y: self.y
+                }
+            } else {
+                Self {
+                    face: CubeFace::Right,
+                    x: self.x + 1,
+                    y: self.y,
+                }
+            },
+            CubeFace::Top => if self.x == S as u16 - 1{
+                Self {
+                    face: CubeFace::Right,
+                    x: self.y,
+                    y: 0,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Top,
+                    x: self.x + 1,
+                    y: self.y
+                }
+            },
+            CubeFace::Bottom => if self.x == S as u16 - 1 {
+                Self {
+                    face: CubeFace::Right,
+                    x: self.y,
+                    y: S as u16 - 1,
+                }
+            } else {
+                Self {
+                    face: CubeFace::Bottom,
+                    x: self.x + 1,
+                    y: self.y
+                }
+            },
+        }
     }
 
     fn position(&self, scale: f64) -> (f64, f64, f64) {
