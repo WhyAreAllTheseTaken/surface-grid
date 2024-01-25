@@ -3,6 +3,7 @@
 use std::{f64::consts::PI, ops::{Index, IndexMut}, vec, fmt::Debug};
 
 use itertools::Itertools;
+use rayon::prelude::*;
 use static_array::HeapArray2D;
 
 use crate::{GridPoint, SurfaceGrid};
@@ -56,8 +57,40 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
         }
     }
 
+    fn from_fn_par<F: Fn(&Self::Point) -> T + Send + Sync>(f: F) -> Self where T: Send + Sync {
+        Self {
+            data: HeapArray2D::from_fn_par(|y, x| {
+                let point = RectangleSpherePoint::new(x as u32, y as u32);
+
+                f(&point)
+            })
+        }
+    }
+
+    fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
+        (0..H).cartesian_product(0..W)
+            .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
+            .for_each(|point| self[point] = f(&point))
+    }
+
+    fn set_from_fn_par<F: Fn(&Self::Point) -> T + Send + Sync>(&mut self, f: F) where T: Send + Sync {
+        self.data.iter_mut().enumerate().par_bridge().for_each(|(y, subarray)| {
+            for x in 0..W {
+                let point = RectangleSpherePoint::new(x as u32, y as u32);
+
+                subarray[x] = f(&point);
+            }
+        })
+    }
+
     fn iter<'a>(&'a self) -> impl Iterator<Item = (RectangleSpherePoint<W, H>, &'a T)> where T: 'a {
         (0..H).cartesian_product(0..W)
+            .map(|(y, x)| (RectangleSpherePoint::new(x as u32, y as u32), &self.data[y][x]))
+    }
+
+    fn par_iter<'a>(&'a self) -> impl ParallelIterator<Item = (Self::Point, &'a T)> where T: 'a + Send + Sync {
+        (0..H).cartesian_product(0..W)
+            .par_bridge()
             .map(|(y, x)| (RectangleSpherePoint::new(x as u32, y as u32), &self.data[y][x]))
     }
 
@@ -66,10 +99,10 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
             .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
     }
 
-    fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
+    fn par_points(&self) -> impl ParallelIterator<Item = Self::Point> {
         (0..H).cartesian_product(0..W)
+            .par_bridge()
             .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
-            .for_each(|point| self[point] = f(&point))
     }
 }
 
@@ -274,8 +307,64 @@ impl <T: Debug, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
         }
     }
 
+    fn from_fn_par<F: Fn(&Self::Point) -> T + Send + Sync>(f: F) -> Self where T: Send + Sync {
+        Self {
+            top: HeapArray2D::from_fn_par(|y, x| f(&CubeSpherePoint::new(CubeFace::Top, x as u16, y as u16))),
+            left: HeapArray2D::from_fn_par(|y, x| f(&CubeSpherePoint::new(CubeFace::Left, x as u16, y as u16))),
+            front: HeapArray2D::from_fn_par(|y, x| f(&CubeSpherePoint::new(CubeFace::Front, x as u16, y as u16))),
+            right: HeapArray2D::from_fn_par(|y, x| f(&CubeSpherePoint::new(CubeFace::Right, x as u16, y as u16))),
+            back: HeapArray2D::from_fn_par(|y, x| f(&CubeSpherePoint::new(CubeFace::Back, x as u16, y as u16))),
+            bottom: HeapArray2D::from_fn_par(|y, x| f(&CubeSpherePoint::new(CubeFace::Bottom, x as u16, y as u16))),
+        }
+    }
+
+    fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
+        [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ].into_iter()
+            .cartesian_product(0..S)
+            .cartesian_product(0..S)
+            .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
+            .map(|point| (point, f(&point)))
+            .for_each(|(point, value)| self[point] = value)
+    }
+
+    fn set_from_fn_par<F: Fn(&Self::Point) -> T + Send + Sync>(&mut self, f: F) where T: Send + Sync {
+        for face in [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ] {
+            match face {
+                CubeFace::Front => &mut self.front,
+                CubeFace::Back => &mut self.back,
+                CubeFace::Left => &mut self.left,
+                CubeFace::Right => &mut self.right,
+                CubeFace::Top => &mut self.top,
+                CubeFace::Bottom => &mut self.bottom,
+            }.iter_mut().enumerate().par_bridge().for_each(|(y, subarray)| for x in 0..S {
+                let point = CubeSpherePoint::new(face, x as u16, y as u16);
+
+                subarray[x] = f(&point);
+            });
+        }
+    }
+
     fn iter<'a>(&'a self) -> impl Iterator<Item = (Self::Point, &'a T)> where T: 'a {
         self.points()
+            .map(|point| (point, &self[point]))
+    }
+
+    fn par_iter<'a>(&'a self) -> impl ParallelIterator<Item = (Self::Point, &'a T)> where T: 'a + Send + Sync {
+        self.par_points()
             .map(|point| (point, &self[point]))
     }
 
@@ -293,7 +382,7 @@ impl <T: Debug, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
             .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
     }
 
-    fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
+    fn par_points(&self) -> impl ParallelIterator<Item = Self::Point> {
         [
             CubeFace::Top,
             CubeFace::Left,
@@ -304,9 +393,8 @@ impl <T: Debug, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
         ].into_iter()
             .cartesian_product(0..S)
             .cartesian_product(0..S)
+            .par_bridge()
             .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
-            .map(|point| (point, f(&point)))
-            .for_each(|(point, value)| self[point] = value)
     }
 }
 
