@@ -14,6 +14,33 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
     /// - `f` - The function to apply.
     fn from_fn<F: FnMut(&Self::Point) -> T>(f: F) -> Self;
 
+    /// Applies a function to each cell and its direct neighbours.
+    ///
+    /// The provided function is called with the arguments: current, up, down, left, right.
+    ///
+    /// `f` - The function to apply.
+    fn from_neighbours<F: FnMut(&T, &T, &T, &T, &T) -> T>(&self, mut f: F) -> Self where Self: Sized {
+        Self::from_fn(|current| {
+            f(&self[current.clone()], &self[current.up()], &self[current.down()], &self[current.left()], &self[current.right()])
+        })
+    }
+    
+    /// Applies a function to each cell and its direct neighbours including diagonals.
+    ///
+    /// The provided function is called with the arguments: up_left, up, up_right,
+    /// left, current, right, down_left, down, down_right.
+    ///
+    /// `f` - The function to apply.
+    fn from_neighbours_diagonals<F: FnMut(&T, &T, &T, &T, &T, &T, &T, &T, &T) -> T>(&self, mut f: F) -> Self where Self: Sized {
+        Self::from_fn(|current| {
+            f(
+                &self[current.up().left()], &self[current.up()], &self[current.up().right()],
+                &self[current.left()], &self[current.clone()], &self[current.right()],
+                &self[current.down().left()], &self[current.down()], &self[current.down().right()]
+                )
+        })
+    }
+
     /// Iterates over the points in this grid and their values.
     fn iter<'a>(&'a self) -> impl Iterator<Item = (Self::Point, &'a T)> where T: 'a;
 
