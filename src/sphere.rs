@@ -1,7 +1,8 @@
 //! A module containing grids wrapped around spheres.
 
-use std::{f64::consts::PI, ops::{Index, IndexMut}, vec};
+use std::{f64::consts::PI, ops::{Index, IndexMut}, vec, fmt::Debug};
 
+use itertools::Itertools;
 use static_array::HeapArray2D;
 
 use crate::{GridPoint, SurfaceGrid};
@@ -56,17 +57,17 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
     }
 
     fn iter<'a>(&'a self) -> impl Iterator<Item = (RectangleSpherePoint<W, H>, &'a T)> where T: 'a {
-        (0..H).zip(0..W)
+        (0..H).cartesian_product(0..W)
             .map(|(y, x)| (RectangleSpherePoint::new(x as u32, y as u32), &self.data[y][x]))
     }
 
     fn points(&self) -> impl Iterator<Item = Self::Point> {
-        (0..H).zip(0..W)
+        (0..H).cartesian_product(0..W)
             .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
     }
 
     fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
-        (0..H).zip(0..W)
+        (0..H).cartesian_product(0..W)
             .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
             .for_each(|point| self[point] = f(&point))
     }
@@ -249,6 +250,7 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
 ///
 /// # Constant Parameters
 /// - `S` - The size of each side of each face.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct CubeSphereGrid<T, const S: usize> {
     top: HeapArray2D<T, S, S>,
     left: HeapArray2D<T, S, S>,
@@ -258,7 +260,7 @@ pub struct CubeSphereGrid<T, const S: usize> {
     bottom: HeapArray2D<T, S, S>,
 }
 
-impl <T, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
+impl <T: Debug, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
     type Point = CubeSpherePoint<S>;
 
     fn from_fn<F: FnMut(&Self::Point) -> T>(mut f: F) -> Self {
@@ -286,8 +288,8 @@ impl <T, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
             CubeFace::Back,
             CubeFace::Bottom,
         ].into_iter()
-            .zip(0..S)
-            .zip(0..S)
+            .cartesian_product(0..S)
+            .cartesian_product(0..S)
             .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
     }
 
@@ -300,10 +302,11 @@ impl <T, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
             CubeFace::Back,
             CubeFace::Bottom,
         ].into_iter()
-            .zip(0..S)
-            .zip(0..S)
+            .cartesian_product(0..S)
+            .cartesian_product(0..S)
             .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
-            .for_each(|point| self[point] = f(&point))
+            .map(|point| (point, f(&point)))
+            .for_each(|(point, value)| self[point] = value)
     }
 }
 
