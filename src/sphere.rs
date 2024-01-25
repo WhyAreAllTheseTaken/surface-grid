@@ -64,6 +64,12 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
         (0..H).zip(0..W)
             .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
     }
+
+    fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
+        (0..H).zip(0..W)
+            .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
+            .for_each(|point| self[point] = f(&point))
+    }
 }
 
 impl <T, const W: usize, const H: usize> Index<RectangleSpherePoint<W, H>> for RectangleSphereGrid<T, W, H> {
@@ -1102,7 +1108,7 @@ mod test {
     fn test_rect_from_neighbours() {
         let grid: RectangleSphereGrid<u32, 20, 10> = RectangleSphereGrid::from_fn(|point| point.x);
 
-        let grid2 = grid.from_neighbours(|current, up, down, left, right| current + up + down + left + right);
+        let grid2 = grid.map_neighbours(|current, up, down, left, right| current + up + down + left + right);
 
         assert_eq!(25, grid2[RectangleSpherePoint::new(5, 3)])
     }
@@ -1111,7 +1117,7 @@ mod test {
     fn test_rect_from_neighbours_diagonals() {
         let grid: RectangleSphereGrid<u32, 20, 10> = RectangleSphereGrid::from_fn(|point| point.x);
 
-        let grid2 = grid.from_neighbours_diagonals(|up_left, up, up_right, left, current, right, down_left, down, down_right| up_left + up + up_right + left + current + right + down_left + down + down_right);
+        let grid2 = grid.map_neighbours_diagonals(|up_left, up, up_right, left, current, right, down_left, down, down_right| up_left + up + up_right + left + current + right + down_left + down + down_right);
 
         assert_eq!(4 * 3 + 5 * 3 + 6 * 3, grid2[RectangleSpherePoint::new(5, 3)])
     }
@@ -1356,7 +1362,7 @@ mod test {
     fn test_cube_from_neighbours() {
         let grid: CubeSphereGrid<u16, 10> = CubeSphereGrid::from_fn(|point| point.x);
 
-        let grid2 = grid.from_neighbours(|current, up, down, left, right| current + up + down + left + right);
+        let grid2 = grid.map_neighbours(|current, up, down, left, right| current + up + down + left + right);
 
         assert_eq!(25, grid2[CubeSpherePoint::new(CubeFace::Front, 5, 3)])
     }
@@ -1365,7 +1371,7 @@ mod test {
     fn test_cube_from_neighbours_diagonals() {
         let grid: CubeSphereGrid<u16, 10> = CubeSphereGrid::from_fn(|point| point.x);
 
-        let grid2 = grid.from_neighbours_diagonals(|up_left, up, up_right, left, current, right, down_left, down, down_right| up_left + up + up_right + left + current + right + down_left + down + down_right);
+        let grid2 = grid.map_neighbours_diagonals(|up_left, up, up_right, left, current, right, down_left, down, down_right| up_left + up + up_right + left + current + right + down_left + down + down_right);
 
         assert_eq!(4 * 3 + 5 * 3 + 6 * 3, grid2[CubeSpherePoint::new(CubeFace::Front, 5, 3)])
     }
