@@ -5,7 +5,7 @@ The crate provides a trait `SurfaceGrid` with an associated type `Point` which c
 Additionally, for grids that wrap a sphere the `Point` type implements the `SpherePoint` trait providing conversions
 between geographic and surface grid coordinates.
 
-You can view examples in [[examples]].
+You can view examples in [examples](./examples).
 
 ## Available Surfaces
 ### Spheres
