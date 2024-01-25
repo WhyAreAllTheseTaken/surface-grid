@@ -1,6 +1,6 @@
 //! A module containing grids wrapped around spheres.
 
-use std::{f64::consts::PI, ops::{Index, IndexMut, Rem}, vec};
+use std::{f64::consts::PI, ops::{Index, IndexMut}, vec};
 
 use static_array::HeapArray2D;
 
