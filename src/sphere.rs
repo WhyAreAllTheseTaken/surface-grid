@@ -487,7 +487,7 @@ impl <const S: usize> GridPoint for CubeSpherePoint<S> {
                 Self {
                     face: CubeFace::Top,
                     x: self.x,
-                    y: S as u16 + 1,
+                    y: 0,
                 }
             } else {
                 Self {
