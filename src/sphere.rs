@@ -285,7 +285,25 @@ impl <T, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
             CubeFace::Right,
             CubeFace::Back,
             CubeFace::Bottom,
-        ].into_iter().zip(0..S).zip(0..S).map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
+        ].into_iter()
+            .zip(0..S)
+            .zip(0..S)
+            .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
+    }
+
+    fn set_from_fn<F: FnMut(&Self::Point) -> T>(&mut self, mut f: F) {
+        [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ].into_iter()
+            .zip(0..S)
+            .zip(0..S)
+            .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
+            .for_each(|point| self[point] = f(&point))
     }
 }
 
