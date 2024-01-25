@@ -1,6 +1,6 @@
 //! A module containing grids wrapped around spheres.
 
-use std::{f64::consts::PI, ops::{Index, IndexMut}, vec};
+use std::{f64::consts::PI, ops::{Index, IndexMut, Rem}, vec};
 
 use static_array::HeapArray2D;
 
@@ -746,14 +746,13 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
         let z = radius * longitude.cos();
 
         let latitude = latitude.rem_euclid(2.0 * PI);
-        let longitude = longitude.rem_euclid(2.0 * PI);
 
-        let latitude = if latitude > 3.0 * PI / 2.0 {
-            latitude - 2.0 * PI
+        let (latitude, longitude) = if latitude > 3.0 * PI / 2.0 {
+            (latitude - 2.0 * PI, longitude.rem_euclid(2.0 * PI))
         } else if latitude > PI / 2.0 {
-            latitude - PI
+            (latitude - PI, (longitude + PI).rem_euclid(2.0 * PI))
         } else {
-            latitude
+            (latitude, longitude.rem_euclid(2.0 * PI))
         };
 
         let face = if latitude > PI / 4.0 {
@@ -1187,7 +1186,7 @@ mod test {
     fn test_cube_point_from_geographic_equator() {
         let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(0.0, PI);
 
-        assert_eq!(CubeSpherePoint::new(CubeFace::Front, 50, 50), point);
+        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 50), point);
     }
     
     #[test]
@@ -1206,28 +1205,28 @@ mod test {
     
     #[test]
     fn test_cube_point_from_geographic_equator_wrap_north() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(-PI, PI);
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(-PI, 0.0);
 
-        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 50), point);
+        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 49), point);
     }
     
     #[test]
     fn test_cube_point_from_geographic_equator_wrap_south() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(PI, PI);
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(PI, 0.0);
 
         assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 50), point);
     }
     
     #[test]
     fn test_cube_point_from_geographic_east() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(0.0, PI * 2.0);
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(0.0, -PI / 2.0);
 
         assert_eq!(CubeSpherePoint::new(CubeFace::Left, 50, 50), point);
     }
     
     #[test]
     fn test_cube_point_from_geographic_west() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(0.0, 0.0);
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(0.0, PI / 2.0);
 
         assert_eq!(CubeSpherePoint::new(CubeFace::Right, 50, 50), point);
     }
