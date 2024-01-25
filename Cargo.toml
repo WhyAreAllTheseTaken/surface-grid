@@ -1,9 +1,27 @@
 [package]
 name = "surface-grid"
 version = "0.0.0"
+authors = [
+    "Tomas O'Shea <48136416+Tomaso2468@users.noreply.github.com>"
+]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "BSD-3-Clause"
+resolver = "2"
+description = "A crate providing data structures for square-tiled grids wrapped around the surface of certain objects."
+homepage = "https://github.com/Tomaso2468/surface-grid"
+repository = "https://github.com/Tomaso2468/surface-grid"
+keywords = ["projection", "cellular", "automata", "globe", "map"]
+categories = ["data-structures", "simulation"]
+readme = "README.md"
+include = [
+    "Cargo.toml",
+    "LICENSE",
+    "README.md",
+    "Cargo.lock",
+    "src/**.rs",
+    "examples/**.rs",
+    "CHANGELOG.md"
+]
 
 [dependencies]
 itertools = "0.12.0"
