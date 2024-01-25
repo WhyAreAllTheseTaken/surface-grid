@@ -27,13 +27,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut rng = thread_rng();
 
-    let mut buffer1: CubeSphereGrid<bool, 200> = CubeSphereGrid::from_fn(|_| rng.gen());
-    let mut buffer2: CubeSphereGrid<bool, 200> = CubeSphereGrid::default();
+    let mut buffer1: CubeSphereGrid<bool, 256> = CubeSphereGrid::from_fn(|_| rng.gen());
+    let mut buffer2: CubeSphereGrid<bool, 256> = CubeSphereGrid::default();
 
     event_loop.run(move |event, target| {
         match event {
             Event::NewEvents(StartCause::Init) => {
-                target.set_control_flow(ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(1000 / 20)))
+                target.set_control_flow(ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(1000 / 60)))
             },
             Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
                 window.request_redraw();
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     WindowEvent::RedrawRequested => {
                         println!("Frame");
 
-                        buffer2.set_from_neighbours_diagonals(&buffer1, |s1, s2, s3, s4, current, s6, s7, s8, s9| {
+                        buffer2.set_from_neighbours_diagonals_par(&buffer1, |s1, s2, s3, s4, current, s6, s7, s8, s9| {
                             let count = [s1, s2, s3, s4, s6, s7, s8, s9]
                                 .into_iter()
                                 .filter(|s| **s)
