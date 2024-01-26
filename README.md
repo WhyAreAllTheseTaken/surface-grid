@@ -7,6 +7,8 @@ between geographic and surface grid coordinates.
 
 You can view examples in [examples](./examples).
 
+The documentation is available at <https://docs.rs/surface-grid/0.2.0>.
+
 ## Available Surfaces
 ### Spheres
 - `RectangleSphereGrid` - Uses an equirectangular projection to wrap a rectangle around the sphere.
