@@ -237,7 +237,7 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
     fn position(&self, scale: f64) -> (f64, f64, f64) {
         let (long, lat) = self.sphere_coordinates();
 
-        let y = scale * lat.cos();
+        let y = scale * lat.sin();
         let radius = scale * lat.cos();
 
         let x = radius * long.sin();
@@ -494,7 +494,9 @@ impl <const S: usize> CubeSpherePoint<S> {
     /// - `y` - The Y position on the face.
     fn new(face: CubeFace, x: u16, y: u16) -> Self {
         Self {
-            face, x, y
+            face,
+            x: x.clamp(0, S as u16 - 1),
+            y: y.clamp(0, S as u16 - 1)
         }
     }
 }
@@ -838,11 +840,11 @@ impl <const S: usize> GridPoint for CubeSpherePoint<S> {
 
         let (x, y, z) = match self.face {
             CubeFace::Front => (x * 2.0 - S as f64, y * 2.0 - S as f64, S as f64),
-            CubeFace::Back => (x * 2.0 - S as f64, y * 2.0 - S as f64, -(S as f64)),
+            CubeFace::Back => (x * 2.0 - S as f64, -y * 2.0 + S as f64, -(S as f64)),
             CubeFace::Left => (-(S as f64), y * 2.0 - S as f64, x * 2.0 -(S as f64)),
-            CubeFace::Right => (-(S as f64), y * 2.0 - S as f64, S as f64 - x * 2.0),
+            CubeFace::Right => (S as f64, y * 2.0 - S as f64, S as f64 - x * 2.0),
             CubeFace::Top => (x * 2.0 - S as f64, S as f64, y * 2.0 - S as f64),
-            CubeFace::Bottom => (x * 2.0 - S as f64, S as f64, S as f64 - y * 2.0),
+            CubeFace::Bottom => (x * 2.0 - S as f64, -(S as f64), S as f64 - y * 2.0),
         };
 
         let length = (x * x + y * y + z * z).sqrt();
@@ -853,9 +855,9 @@ impl <const S: usize> GridPoint for CubeSpherePoint<S> {
 
 impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
     fn from_geographic(latitude: f64, longitude: f64) -> Self {
-        let y = latitude.sin() * S as f64;
+        let y = latitude.sin();
 
-        let radius = latitude.cos() * S as f64;
+        let radius = latitude.cos();
 
         let x = radius * longitude.sin();
         let z = radius * longitude.cos();
@@ -888,36 +890,66 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
 
         match face {
             CubeFace::Front => {
+                let scale = S as f64 / z.abs();
+
+                let x = x * scale;
+                let y = y * scale;
+
                 let x2 = (x + S as f64) / 2.0;
                 let y2 = (y + S as f64) / 2.0;
 
                 CubeSpherePoint::new(CubeFace::Front, x2 as u16, y2 as u16)
             },
             CubeFace::Back => {
+                let scale = S as f64 / z.abs();
+
+                let x = x * scale;
+                let y = y * scale;
+                
                 let x2 = (x + S as f64) / 2.0;
-                let y2 = (y + S as f64) / 2.0;
+                let y2 = (y - S as f64) / -2.0;
                 
                 CubeSpherePoint::new(CubeFace::Back, x2 as u16, y2 as u16)
             },
             CubeFace::Left => {
+                let scale = S as f64 / x.abs();
+
+                let z = z * scale;
+                let y = y * scale;
+
                 let x2 = (z + S as f64) / 2.0;
                 let y2 = (y + S as f64) / 2.0;
                 
                 CubeSpherePoint::new(CubeFace::Left, x2 as u16, y2 as u16)
             },
             CubeFace::Right => {
+                let scale = S as f64 / x.abs();
+
+                let z = z * scale;
+                let y = y * scale;
+                
                 let x2 = (S as f64 - z) / 2.0;
                 let y2 = (y + S as f64) / 2.0;
                 
                 CubeSpherePoint::new(CubeFace::Right, x2 as u16, y2 as u16)
             },
             CubeFace::Top => {
+                let scale = S as f64 / y.abs();
+
+                let z = z * scale;
+                let x = x * scale;
+                
                 let x2 = (x + S as f64) / 2.0;
                 let y2 = (z + S as f64) / 2.0;
                 
                 CubeSpherePoint::new(CubeFace::Top, x2 as u16, y2 as u16)
             },
             CubeFace::Bottom => {
+                let scale = S as f64 / y.abs();
+
+                let z = z * scale;
+                let x = x * scale;
+                
                 let x2 = (x + S as f64) / 2.0;
                 let y2 = (S as f64 - z) / 2.0;
                 
@@ -931,13 +963,13 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
 
         let distance = (x * x + z * z).sqrt();
 
-        y.atan2(distance)
+        (y / distance).atan()
     }
 
     fn longitude(&self) -> f64 {
         let (x, _, z) = self.position(1.0);
 
-        z.atan2(x)
+        x.atan2(z).rem_euclid(2.0 * PI)
     }
 }
 
@@ -956,6 +988,8 @@ enum CubeFace {
 #[cfg(test)]
 mod test {
     use std::f64::consts::PI;
+
+    use approx::assert_relative_eq;
 
     use crate::{GridPoint, SurfaceGrid, sphere::{CubeSpherePoint, CubeFace, CubeSphereGrid}};
 
@@ -1230,7 +1264,154 @@ mod test {
 
         assert_eq!(4 * 3 + 5 * 3 + 6 * 3, grid2[RectangleSpherePoint::new(5, 3)])
     }
+
+    #[test]
+    fn test_rect_point_latitude_0() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 0.0);
+
+        assert_relative_eq!(0.0, point.latitude());
+    }
     
+    #[test]
+    fn test_rect_point_latitude_1() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.0, 0.0);
+
+        assert_relative_eq!(1.0, point.latitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_latitude_minus_1() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.0, 0.0);
+
+        assert_relative_eq!(-1.0, point.latitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_latitude_0_far() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 4.0);
+
+        assert_relative_eq!(0.0, point.latitude());
+    }
+    
+    #[test]
+    fn test_rect_point_latitude_1_far() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.0, 2.0);
+
+        assert_relative_eq!(1.0, point.latitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_latitude_minus_1_far() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.0, 3.0);
+
+        assert_relative_eq!(-1.0, point.latitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_0() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 0.0);
+
+        assert_relative_eq!(0.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_1() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 1.0);
+
+        assert_relative_eq!(1.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_2() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 2.0);
+
+        assert_relative_eq!(2.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_4() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 4.0);
+
+        assert_relative_eq!(4.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_6() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(0.0, 6.0);
+
+        assert_relative_eq!(6.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_0_north() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.5, 0.0);
+
+        assert_relative_eq!(0.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_1_north() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.5, 1.0);
+
+        assert_relative_eq!(1.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_2_north() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.5, 2.0);
+
+        assert_relative_eq!(2.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_4_north() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.5, 4.0);
+
+        assert_relative_eq!(4.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_6_north() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(-1.5, 6.0);
+
+        assert_relative_eq!(6.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_0_south() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.5, 0.0);
+
+        assert_relative_eq!(0.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_1_south() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.5, 1.0);
+
+        assert_relative_eq!(1.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_2_south() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.5, 2.0);
+
+        assert_relative_eq!(2.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_4_south() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.5, 4.0);
+
+        assert_relative_eq!(4.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_rect_point_longitude_6_south() {
+        let point: RectangleSpherePoint<1000000000, 500000000> = RectangleSpherePoint::from_geographic(1.5, 6.0);
+
+        assert_relative_eq!(6.0, point.longitude(), epsilon = 0.001);
+    }
+
     #[test]
     fn test_cube_point_up_middle() {
         let point: CubeSpherePoint<5> = CubeSpherePoint::new(CubeFace::Front, 3, 4);
@@ -1340,14 +1521,14 @@ mod test {
     fn test_cube_point_from_geographic_equator_wrap_north() {
         let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(-PI, 0.0);
 
-        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 49), point);
+        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 50), point);
     }
     
     #[test]
     fn test_cube_point_from_geographic_equator_wrap_south() {
         let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(PI, 0.0);
 
-        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 50), point);
+        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 49), point);
     }
     
     #[test]
@@ -1363,6 +1544,14 @@ mod test {
 
         assert_eq!(CubeSpherePoint::new(CubeFace::Right, 50, 50), point);
     }
+    
+    #[test]
+    fn test_cube_point_from_geographic_less_west() {
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(0.0, PI / 2.0 - 0.2);
+
+        assert_eq!(CubeSpherePoint::new(CubeFace::Right, 39, 50), point);
+    }
+
 
     #[test]
     fn test_cube_point_up_loop() {
@@ -1483,6 +1672,275 @@ mod test {
         let grid2 = grid.map_neighbours_diagonals(|up_left, up, up_right, left, current, right, down_left, down, down_right| up_left + up + up_right + left + current + right + down_left + down + down_right);
 
         assert_eq!(4 * 3 + 5 * 3 + 6 * 3, grid2[CubeSpherePoint::new(CubeFace::Front, 5, 3)])
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_0() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 0.0);
+        
+        println!("{:?}", point);
+
+        assert_relative_eq!(0.0, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_1() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.0, 0.0);
+
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(1.0, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_minus_1() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.0, 0.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(-1.0, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_half() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.5, 0.0);
+
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(0.5, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_minus_half() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-0.5, 0.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(-0.5, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_0_far() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 3.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(0.0, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_1_far() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.0, 2.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(1.0, point.latitude(), epsilon = 0.1);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_minus_1_far() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.0, 3.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(-1.0, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_half_far() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.5, 5.0);
+
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(0.5, point.latitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_latitude_minus_half_far() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-0.5, 3.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(-0.5, point.latitude(), epsilon = 0.01);
+    }
+   
+    #[test]
+    fn test_cube_point_longitude_0() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 0.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(0.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_1() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 1.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(1.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_2() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 2.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(2.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_3() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 3.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(3.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_4() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 4.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(4.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_5() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 5.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(5.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_6() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(0.0, 6.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(6.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_0_north() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.5, 0.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(0.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_1_north() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.5, 1.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(1.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_2_north() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.5, 2.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(2.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_4_north() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.5, 4.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(4.0, point.longitude(), epsilon = 0.001);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_6_north() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(-1.5, 6.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(6.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_0_south() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.5, 0.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(0.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_1_south() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.5, 1.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(1.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_2_south() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.5, 2.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(2.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_4_south() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.5, 4.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(4.0, point.longitude(), epsilon = 0.01);
+    }
+    
+    #[test]
+    fn test_cube_point_longitude_6_south() {
+        let point: CubeSpherePoint<32000> = CubeSpherePoint::from_geographic(1.5, 6.0);
+        
+        println!("{:?}", point);
+        println!("{:?}", point.position(1.0));
+
+        assert_relative_eq!(6.0, point.longitude(), epsilon = 0.01);
     }
 }
 

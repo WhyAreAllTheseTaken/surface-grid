@@ -3,7 +3,7 @@
 use std::{error::Error, f64::consts::PI};
 
 use pixels::{SurfaceTexture, Pixels};
-use surface_grid::{sphere::{CubeSphereGrid, CubeSpherePoint, SpherePoint}, SurfaceGrid};
+use surface_grid::{sphere::{CubeSphereGrid, CubeSpherePoint, SpherePoint}, SurfaceGrid, GridPoint};
 use winit::{event_loop::EventLoop, window::WindowBuilder, dpi::{LogicalSize, PhysicalSize}, event::{Event, WindowEvent}};
 
 // The initial window size.
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut pixels = Pixels::new(window_size.width, window_size.height, surface_texture)?;
 
-    let buffer: CubeSphereGrid<(f64, f64), 20> = CubeSphereGrid::from_fn(|point| (point.latitude(), point.longitude()));
+    let buffer: CubeSphereGrid<_, 200> = CubeSphereGrid::from_fn(|point| point.position(1.0));
 
     event_loop.run(move |event, target| {
         match event {
@@ -65,11 +65,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 let latitude = (y as f64 / size.height as f64) * PI - PI / 2.0;
                                 let longitude = (x as f64 / size.width as f64) * PI * 2.0;
 
-                                // Gets the value stored at the latitude and longitude calculated.
-                                let (lat, long) = buffer[CubeSpherePoint::from_geographic(latitude, longitude)];
+                                let (x, y, z) = buffer[CubeSpherePoint::from_geographic(latitude, longitude)];
 
-                                frame[i] = ((lat + PI / 2.0) / PI * 255.0) as u8;
-                                frame[i + 2] = (long / (2.0 * PI) * 255.0) as u8;
+                                frame[i + 0] = ((x + 1.0) / 2.0 * 255.0) as u8;
+                                frame[i + 1] = ((y + 1.0) / 2.0 * 255.0) as u8;
+                                frame[i + 2] = ((z + 1.0) / 2.0 * 255.0) as u8;
                                 frame[i + 3] = 255;
                             }
                         }
