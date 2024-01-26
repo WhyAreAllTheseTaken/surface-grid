@@ -1,6 +1,6 @@
 [package]
 name = "surface-grid"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     "Tomas O'Shea <48136416+Tomaso2468@users.noreply.github.com>"
 ]
