@@ -1,3 +1,16 @@
+<a name="v0.3.1"></a>
+# [Surface Grid Version 0.3.1 (v0.3.1)](https://github.com/Tomaso2468/surface-grid/releases/tag/v0.3.1) - 27 Jan 2024
+
+## Fixes
+- Fixed stretching on cube corners in `CubeSpherePoint`.
+- Fixed certain positions not being mapped correctly on the top and bottom faces of `CubeSphereGrid`.
+- Fixed latitude being inverted.
+
+**Full Changelog**: https://github.com/Tomaso2468/surface-grid/compare/v0.3.0...v0.3.1
+
+[Changes][v0.3.1]
+
+
 <a name="v0.3.0"></a>
 # [Surface Grid Version 0.3.0 (v0.3.0)](https://github.com/Tomaso2468/surface-grid/releases/tag/v0.3.0) - 27 Jan 2024
 
@@ -46,6 +59,7 @@ The initial release of Surface Grid.
 [Changes][v0.1.0]
 
 
+[v0.3.1]: https://github.com/Tomaso2468/surface-grid/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/Tomaso2468/surface-grid/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/Tomaso2468/surface-grid/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/Tomaso2468/surface-grid/tree/v0.1.0
