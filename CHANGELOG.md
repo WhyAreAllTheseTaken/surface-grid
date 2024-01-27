@@ -1,3 +1,15 @@
+<a name="v0.3.0"></a>
+# [Surface Grid Version 0.3.0 (v0.3.0)](https://github.com/Tomaso2468/surface-grid/releases/tag/v0.3.0) - 27 Jan 2024
+
+# Additions
+- Added versions of `map_neighbours`, `map_neighbours_par`, `set_from_neighbours`, and `set_from_neighbours_par` that provide a position for each point calculated.
+
+**Full Changelog**: https://github.com/Tomaso2468/surface-grid/compare/v0.2.0...v0.3.0
+
+
+[Changes][v0.3.0]
+
+
 <a name="v0.2.0"></a>
 # [Surface Grid v0.2.0](https://github.com/Tomaso2468/surface-grid/releases/tag/v0.2.0) - 26 Jan 2024
 
@@ -21,6 +33,8 @@
 - The crate now depends on `rayon` for parallel operations.
 - The crate now uses `static-array` version 0.5.0 with the `rayon` feature.
 
+**Full Changelog**: https://github.com/Tomaso2468/surface-grid/compare/v0.1.0...v0.2.0
+
 [Changes][v0.2.0]
 
 
@@ -32,6 +46,7 @@ The initial release of Surface Grid.
 [Changes][v0.1.0]
 
 
+[v0.3.0]: https://github.com/Tomaso2468/surface-grid/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/Tomaso2468/surface-grid/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/Tomaso2468/surface-grid/tree/v0.1.0
 
