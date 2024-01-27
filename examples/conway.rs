@@ -38,8 +38,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // The size specified here might be smaller than expected.
     // This is because it is the size of each cube face rather than the size of the whole grid.
     // A size of 512 leads to 1572864 grid cells. This is equivalent to an image around 1500x1500.
-    let mut buffer1: CubeSphereGrid<bool, 512> = CubeSphereGrid::from_fn(|_| rng.gen());
-    let mut buffer2: CubeSphereGrid<bool, 512> = CubeSphereGrid::default();
+    let mut buffer1: CubeSphereGrid<bool, 1024> = CubeSphereGrid::from_fn(|_| rng.gen());
+    let mut buffer2: CubeSphereGrid<bool, 1024> = CubeSphereGrid::default();
 
     event_loop.run(move |event, target| {
         match event {
