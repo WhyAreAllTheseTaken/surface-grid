@@ -7,7 +7,7 @@ between geographic and surface grid coordinates.
 
 You can view examples in [examples](./examples).
 
-The documentation is available at <https://docs.rs/surface-grid/0.2.0>.
+The documentation is available at <https://docs.rs/surface-grid/0.3.0>.
 
 ## Available Surfaces
 ### Spheres
