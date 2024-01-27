@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut pixels = Pixels::new(window_size.width, window_size.height, surface_texture)?;
 
-    let buffer: CubeSphereGrid<_, 200> = CubeSphereGrid::from_fn(|point| point.position(1.0));
+    let buffer: CubeSphereGrid<_, 64> = CubeSphereGrid::from_fn(|point| point.position(1.0));
 
     event_loop.run(move |event, target| {
         match event {

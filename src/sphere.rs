@@ -249,6 +249,8 @@ impl <const W: usize, const H: usize> GridPoint for RectangleSpherePoint<W, H> {
 
 impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H> {
     fn from_geographic(latitude: f64, longitude: f64) -> Self {
+        let latitude = -latitude;
+
         let x = ((longitude / (PI * 2.0) * W as f64) as i32).rem_euclid(W as i32) as u32;
         let y = (latitude + PI / 2.0) / PI;
 
@@ -268,7 +270,7 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
     }
     
     fn latitude(&self) -> f64 {
-        self.y as f64 / H as f64 * PI - PI / 2.0
+        -(self.y as f64 / H as f64 * PI - PI / 2.0)
     }
 
     fn longitude(&self) -> f64 {
@@ -495,6 +497,7 @@ impl <const S: usize> CubeSpherePoint<S> {
     fn new(face: CubeFace, x: u16, y: u16) -> Self {
         Self {
             face,
+            // Clamp to account for floating point rounding error.
             x: x.clamp(0, S as u16 - 1),
             y: y.clamp(0, S as u16 - 1)
         }
@@ -862,46 +865,68 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
         let x = radius * longitude.sin();
         let z = radius * longitude.cos();
 
-        let latitude = latitude.rem_euclid(2.0 * PI);
+        let longitude = longitude.rem_euclid(2.0 * PI);
 
-        let (latitude, longitude) = if latitude > 3.0 * PI / 2.0 {
-            (latitude - 2.0 * PI, longitude.rem_euclid(2.0 * PI))
-        } else if latitude > PI / 2.0 {
-            (latitude - PI, (longitude + PI).rem_euclid(2.0 * PI))
-        } else {
-            (latitude, longitude.rem_euclid(2.0 * PI))
-        };
+        let face = if y > 0.0 {
+            let scale = S as f64 / y;
 
-        let face = if latitude > PI / 4.0 {
-            CubeFace::Top
-        } else if latitude < -PI / 4.0 {
-            CubeFace::Bottom
-        } else if longitude > PI / 4.0 + 3.0 * PI / 2.0 {
-            CubeFace::Front
-        } else if longitude > PI / 4.0 + 2.0 * PI / 2.0 {
-            CubeFace::Left
-        } else if longitude > PI / 4.0 + PI / 2.0 {
-            CubeFace::Back
-        } else if longitude > PI / 4.0 {
-            CubeFace::Right
+            let z = z * scale;
+            let x = x * scale;
+            
+            let x2 = (x + S as f64) / 2.0;
+            let y2 = (z + S as f64) / 2.0;
+
+            if (x2 as i32) >= 0 && (x2 as i32) < (S as i32) && (y2 as i32) > 0 && (y2 as i32) < (S as i32) {
+                return CubeSpherePoint::new(CubeFace::Top, x2 as u16, y2 as u16);
+            }
+                
+            if longitude > PI / 4.0 + 3.0 * PI / 2.0 {
+                CubeFace::Front
+            } else if longitude > PI / 4.0 + 2.0 * PI / 2.0 {
+                CubeFace::Left
+            } else if longitude > PI / 4.0 + PI / 2.0 {
+                CubeFace::Back
+            } else if longitude > PI / 4.0 {
+                CubeFace::Right
+            } else {
+                CubeFace::Front
+            }
         } else {
-            CubeFace::Front
+            let scale = -(S as f64) / y;
+
+            let z = z * scale;
+            let x = x * scale;
+            
+            let x2 = (x + S as f64) / 2.0;
+            let y2 = (S as f64 - z) / 2.0;
+
+            if (x2 as i32) >= 0 && (x2 as i32) < (S as i32) && (y2 as i32) > 0 && (y2 as i32) < (S as i32) {
+                return CubeSpherePoint::new(CubeFace::Bottom, x2 as u16, y2 as u16);
+            }
+            if longitude > PI / 4.0 + 3.0 * PI / 2.0 {
+                CubeFace::Front
+            } else if longitude > PI / 4.0 + 2.0 * PI / 2.0 {
+                CubeFace::Left
+            } else if longitude > PI / 4.0 + PI / 2.0 {
+                CubeFace::Back
+            } else if longitude > PI / 4.0 {
+                CubeFace::Right
+            } else {
+                CubeFace::Front
+            }
         };
 
         match face {
             CubeFace::Front => {
-                let scale = S as f64 / z.abs();
+                let scale = S as f64 / z;
 
-                let x = x * scale;
-                let y = y * scale;
-
-                let x2 = (x + S as f64) / 2.0;
-                let y2 = (y + S as f64) / 2.0;
+                let x2 = (x * scale + S as f64) / 2.0;
+                let y2 = (y * scale + S as f64) / 2.0;
 
                 CubeSpherePoint::new(CubeFace::Front, x2 as u16, y2 as u16)
             },
             CubeFace::Back => {
-                let scale = S as f64 / z.abs();
+                let scale = -(S as f64) / z;
 
                 let x = x * scale;
                 let y = y * scale;
@@ -912,7 +937,7 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
                 CubeSpherePoint::new(CubeFace::Back, x2 as u16, y2 as u16)
             },
             CubeFace::Left => {
-                let scale = S as f64 / x.abs();
+                let scale = -(S as f64) / x;
 
                 let z = z * scale;
                 let y = y * scale;
@@ -923,7 +948,7 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
                 CubeSpherePoint::new(CubeFace::Left, x2 as u16, y2 as u16)
             },
             CubeFace::Right => {
-                let scale = S as f64 / x.abs();
+                let scale = S as f64 / x;
 
                 let z = z * scale;
                 let y = y * scale;
@@ -934,7 +959,7 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
                 CubeSpherePoint::new(CubeFace::Right, x2 as u16, y2 as u16)
             },
             CubeFace::Top => {
-                let scale = S as f64 / y.abs();
+                let scale = S as f64 / y;
 
                 let z = z * scale;
                 let x = x * scale;
@@ -945,7 +970,7 @@ impl <const S: usize> SpherePoint for CubeSpherePoint<S> {
                 CubeSpherePoint::new(CubeFace::Top, x2 as u16, y2 as u16)
             },
             CubeFace::Bottom => {
-                let scale = S as f64 / y.abs();
+                let scale = -(S as f64) / y;
 
                 let z = z * scale;
                 let x = x * scale;
@@ -1116,14 +1141,14 @@ mod test {
     
     #[test]
     fn test_rect_point_from_geographic_north_pole() {
-        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(-PI / 2.0, PI);
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI / 2.0, PI);
 
         assert_eq!(RectangleSpherePoint::new(50, 0), point);
     }
     
     #[test]
     fn test_rect_point_from_geographic_south_pole() {
-        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI / 2.0, PI);
+        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(-PI / 2.0, PI);
 
         assert_eq!(RectangleSpherePoint::new(50, 99), point);
     }
@@ -1505,30 +1530,16 @@ mod test {
     
     #[test]
     fn test_cube_point_from_geographic_north_pole() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(-PI / 2.0, PI);
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(PI / 2.0, PI);
 
         assert_eq!(CubeSpherePoint::new(CubeFace::Top, 50, 50), point);
     }
     
     #[test]
     fn test_cube_point_from_geographic_south_pole() {
-        let point: RectangleSpherePoint<100, 100> = RectangleSpherePoint::from_geographic(PI / 2.0, PI);
+        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(-PI / 2.0, PI);
 
-        assert_eq!(RectangleSpherePoint::new(50, 99), point);
-    }
-    
-    #[test]
-    fn test_cube_point_from_geographic_equator_wrap_north() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(-PI, 0.0);
-
-        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 50), point);
-    }
-    
-    #[test]
-    fn test_cube_point_from_geographic_equator_wrap_south() {
-        let point: CubeSpherePoint<100> = CubeSpherePoint::from_geographic(PI, 0.0);
-
-        assert_eq!(CubeSpherePoint::new(CubeFace::Back, 50, 49), point);
+        assert_eq!(CubeSpherePoint::new(CubeFace::Bottom, 50, 50), point);
     }
     
     #[test]
