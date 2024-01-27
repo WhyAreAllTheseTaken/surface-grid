@@ -91,6 +91,73 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
         })
     }
     
+    /// Applies a function to each cell and its direct neighbours providing the current point.
+    ///
+    /// The provided function is called with the arguments: current, position, up, down, left, right.
+    ///
+    /// `f` - The function to apply.
+    fn map_neighbours_with_position<F: FnMut(&T, &Self::Point, &T, &T, &T, &T) -> T>(&self, mut f: F) -> Self where Self: Sized {
+        Self::from_fn(|current| {
+            f(&self[current.clone()], current, &self[current.up()], &self[current.down()], &self[current.left()], &self[current.right()])
+        })
+    }
+    
+    /// Applies a function to each cell and its direct neighbours including diagonals providing the
+    /// current point.
+    ///
+    /// The provided function is called with the arguments: position
+    /// up_left, up, up_right,
+    /// left, current, right,
+    /// down_left, down, down_right.
+    ///
+    /// `f` - The function to apply.
+    fn map_neighbours_diagonals_with_position<
+                F: FnMut(&Self::Point, &T, &T, &T, &T, &T, &T, &T, &T, &T) -> T
+            >(&self, mut f: F) -> Self where Self: Sized {
+        Self::from_fn(|current| {
+            f(current,
+                &self[current.up().left()], &self[current.up()], &self[current.up().right()],
+                &self[current.left()], &self[current.clone()], &self[current.right()],
+                &self[current.down().left()], &self[current.down()], &self[current.down().right()]
+                )
+        })
+    }
+    
+    /// Applies a function in parallel to each cell and its direct neighbours providing the current
+    /// point.
+    ///
+    /// The provided function is called with the arguments: current, position, up, down, left, right.
+    ///
+    /// `f` - The function to apply.
+    fn map_neighbours_par_with_position<
+                F: Fn(&T, &Self::Point, &T, &T, &T, &T) -> T + Send + Sync
+            >(&self, f: F) -> Self where Self: Sized + Sync, T: Send + Sync {
+        Self::from_fn_par(|current| {
+            f(&self[current.clone()], current, &self[current.up()], &self[current.down()], &self[current.left()], &self[current.right()])
+        })
+    }
+    
+    /// Applies a function in parallel to each cell and its direct neighbours including diagonals
+    /// providing the current point.
+    ///
+    /// The provided function is called with the arguments: position,
+    /// up_left, up, up_right,
+    /// left, current, right, 
+    /// down_left, down, down_right.
+    ///
+    /// `f` - The function to apply.
+    fn map_neighbours_diagonals_par_with_position<
+                F: Fn(&Self::Point, &T, &T, &T, &T, &T, &T, &T, &T, &T) -> T + Send + Sync
+            >(&self, f: F) -> Self where Self: Sized + Sync, T: Send + Sync {
+        Self::from_fn_par(|current| {
+            f(current,
+                &self[current.up().left()], &self[current.up()], &self[current.up().right()],
+                &self[current.left()], &self[current.clone()], &self[current.right()],
+                &self[current.down().left()], &self[current.down()], &self[current.down().right()]
+                )
+        })
+    }
+    
     /// Updates this surface grid by calling the specified function for each point in the grid.
     ///
     /// - `f` - The function to apply.
@@ -169,6 +236,84 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
             >(&mut self, source: &G, f: F) where T: Send + Sync {
         self.set_from_fn(|current| {
             f(
+                &source[current.up().left()], &source[current.up()], &source[current.up().right()],
+                &source[current.left()], &source[current.clone()], &source[current.right()],
+                &source[current.down().left()], &source[current.down()], &source[current.down().right()]
+                )
+        })
+    }
+    
+    /// Applies a function to each cell and its direct neighbours providing the position.
+    ///
+    /// The provided function is called with the arguments: current, position, up, down, left, right.
+    ///
+    /// `source` - The source grid from which to read data.
+    /// `f` - The function to apply.
+    fn set_from_neighbours_with_position<
+                U,
+                G: SurfaceGrid<U, Point = Self::Point>,
+                F: FnMut(&U, &Self::Point, &U, &U, &U, &U) -> T
+            >(&mut self, source: &G, mut f: F) {
+        self.set_from_fn(|current| {
+            f(&source[current.clone()], current, &source[current.up()], &source[current.down()], &source[current.left()], &source[current.right()])
+        })
+    }
+    
+    /// Applies a function to each cell and its direct neighbours including diagonals.
+    ///
+    /// The provided function is called with the arguments: position,
+    /// up_left, up, up_right,
+    /// left, current, right,
+    /// down_left, down, down_right.
+    ///
+    /// `source` - The source grid from which to read data.
+    /// `f` - The function to apply.
+    fn set_from_neighbours_diagonals_with_position<
+                U,
+                G: SurfaceGrid<U, Point = Self::Point>,
+                F: FnMut(&Self::Point, &U, &U, &U, &U, &U, &U, &U, &U, &U) -> T
+            >(&mut self, source: &G, mut f: F) {
+        self.set_from_fn(|current| {
+            f(current,
+                &source[current.up().left()], &source[current.up()], &source[current.up().right()],
+                &source[current.left()], &source[current.clone()], &source[current.right()],
+                &source[current.down().left()], &source[current.down()], &source[current.down().right()]
+                )
+        })
+    }
+    
+    /// Applies a function to each cell and its direct neighbours in parallel.
+    ///
+    /// The provided function is called with the arguments: current, position, up, down, left, right.
+    ///
+    /// `source` - The source grid from which to read data.
+    /// `f` - The function to apply.
+    fn set_from_neighbours_par_with_position<
+                U,
+                G: SurfaceGrid<U, Point = Self::Point> + Sync,
+                F: Fn(&U, &Self::Point, &U, &U, &U, &U) -> T + Send + Sync
+            >(&mut self, source: &G, f: F) where T: Send + Sync {
+        self.set_from_fn(|current| {
+            f(&source[current.clone()], current, &source[current.up()], &source[current.down()], &source[current.left()], &source[current.right()])
+        })
+    }
+    
+    /// Applies a function to each cell and its direct neighbours including diagonals in parallel.
+    ///
+    /// The provided function is called with the arguments: position,
+    /// up_left, up, up_right,
+    /// left, current, right,
+    /// down_left, down, down_right.
+    ///
+    /// `source` - The source grid from which to read data.
+    /// `f` - The function to apply.
+    fn set_from_neighbours_diagonals_par_with_position<
+                U,
+                G: SurfaceGrid<U, Point = Self::Point> + Sync,
+                F: Fn(&Self::Point, &U, &U, &U, &U, &U, &U, &U, &U, &U) -> T + Send + Sync
+            >(&mut self, source: &G, f: F) where T: Send + Sync {
+        self.set_from_fn(|current| {
+            f(current,
                 &source[current.up().left()], &source[current.up()], &source[current.up().right()],
                 &source[current.left()], &source[current.clone()], &source[current.right()],
                 &source[current.down().left()], &source[current.down()], &source[current.down().right()]
