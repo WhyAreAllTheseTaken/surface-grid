@@ -24,7 +24,7 @@ include = [
 ]
 
 [dependencies]
-itertools = "0.12.1"
+itertools = "0.13.0"
 rayon = "1.10.0"
 static-array = { version = "0.5.0", features = ["rayon"] }
 
