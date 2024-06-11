@@ -1012,7 +1012,7 @@ enum CubeFace {
 
 #[cfg(test)]
 mod test {
-    use std::f64::consts::PI;
+    use std::{f64::consts::PI, hint::black_box};
 
     use approx::assert_relative_eq;
 
@@ -1952,6 +1952,27 @@ mod test {
         println!("{:?}", point.position(1.0));
 
         assert_relative_eq!(6.0, point.longitude(), epsilon = 0.01);
+    }
+
+    #[test]
+    fn test_cube_clone_128() {
+        let grid: CubeSphereGrid<u64, 128> = CubeSphereGrid::default();
+
+        assert_eq!(grid, black_box(grid.clone()));
+    }
+    
+    #[test]
+    fn test_cube_clone_128_large_struct() {
+        let grid: CubeSphereGrid<[u8; 1024], 128> = CubeSphereGrid::from_fn(|_| [0b11101101; 1024]);
+
+        assert_eq!(grid, black_box(grid.clone()));
+    }
+    
+    #[test]
+    fn test_cube_clone_4096() {
+        let grid: CubeSphereGrid<u64, 4096> = CubeSphereGrid::default();
+
+        assert_eq!(grid, black_box(grid.clone()));
     }
 }
 
