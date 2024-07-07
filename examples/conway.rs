@@ -84,7 +84,7 @@ impl ApplicationHandler for ConwayGameOfLife {
             },
             WindowEvent::CloseRequested => {
                 event_loop.exit()
-            }
+            },
             WindowEvent::RedrawRequested => {
                 // Calculate conways game of life in parallel.
                 self.buffer2.set_from_neighbours_diagonals_par(&self.buffer1, |s1, s2, s3, s4, current, s6, s7, s8, s9| {
