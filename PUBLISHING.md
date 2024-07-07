@@ -6,7 +6,7 @@ The following is a guide for publishing this project.
 3. Create a release.
 4. Generate the changelog by running `changelog-from-release > CHANGELOG.md`.
 5. Run `cargo publish --dry-run` to test publishing.
-6. Check `cargo package --list`.
-7. Run `cargo publish`.
-8. Commit changelog.
+6. Commit changelog.
+7. Check `cargo package --list`.
+8. Run `cargo publish`.
 
