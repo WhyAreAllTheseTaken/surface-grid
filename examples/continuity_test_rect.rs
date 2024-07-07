@@ -1,91 +1,114 @@
-//! An example testing the continuity and correct mapping of the `CubeSphereGrid` projection.
+//! An example testing the continuity and correct mapping of the `RectangleSphere` projection.
 
-use std::{error::Error, f64::consts::PI};
+use std::f64::consts::PI;
 
 use pixels::{SurfaceTexture, Pixels};
-use surface_grid::{sphere::{RectangleSphereGrid, RectangleSpherePoint, SpherePoint}, SurfaceGrid, GridPoint};
-use winit::{event_loop::EventLoop, window::WindowBuilder, dpi::{LogicalSize, PhysicalSize}, event::{Event, WindowEvent}};
+use surface_grid::{sphere::{RectangleSpherePoint, RectangleSphereGrid, SpherePoint}, GridPoint, SurfaceGrid};
+use winit::{application::ApplicationHandler, dpi::{LogicalSize, PhysicalSize}, event::WindowEvent, event_loop::{ActiveEventLoop, EventLoop}, window::{Window, WindowAttributes, WindowId}};
 
 // The initial window size.
 const WINDOW_WIDTH: usize = 720;
 const WINDOW_HEIGHT: usize = 480;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    // This example uses winit with pixels to display the game.
-    let event_loop = EventLoop::new()?;
+struct TestApp {
+    window: Option<Window>,
+    size: Option<PhysicalSize<u32>>,
+    pixels: Option<Pixels>,
+    buffer: RectangleSphereGrid<(f64, f64, f64), 128, 128>,
+}
 
-    let size = LogicalSize::new(WINDOW_WIDTH as f64, WINDOW_HEIGHT as f64);
+impl TestApp {
+    pub fn new() -> Self {
+        Self {
+            window: None,
+            size: None,
+            pixels: None,
+            buffer: RectangleSphereGrid::from_fn(|point| point.position(1.0))
+        }
+    }
+}
 
-    // Build the window.
-    let window = WindowBuilder::new()
-        .with_title("Continuity Test")
-        .with_inner_size(size)
-        .build(&event_loop)?;
+impl ApplicationHandler for TestApp {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let size = LogicalSize::new(WINDOW_WIDTH as f64, WINDOW_HEIGHT as f64);
+        // Build the window.
+        let window_attrs = WindowAttributes::default()
+            .with_title("Cube Test")
+            .with_inner_size(size);
 
-    // Pixels setup.
-    let window_size = window.inner_size();
-    let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        self.window = Some(event_loop.create_window(window_attrs).expect("Failed to create window."));
 
-    let mut size = window_size;
+        // Pixels setup.
+        let window_size = self.window.as_ref().unwrap().inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, self.window.as_ref().unwrap());
 
-    let mut pixels = Pixels::new(window_size.width, window_size.height, surface_texture)?;
+        self.size = Some(window_size);
 
-    let buffer: RectangleSphereGrid<_, 400, 200> = RectangleSphereGrid::from_fn(|point| (point.position(1.0)));
+        self.pixels = Some(Pixels::new(window_size.width, window_size.height, surface_texture)
+            .expect("Failed to create pixel buffer."));
+    }
 
-    event_loop.run(move |event, target| {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
         match event {
-            Event::WindowEvent { event, .. } => {
-                match event {
-                    WindowEvent::Resized(window_size) => {
-                        // Handle resizing.
-                        if window_size.width != 0 && window_size.height != 0 {
-                            size = PhysicalSize::new(window_size.width, window_size.height);
+            WindowEvent::Resized(window_size) => {
+                // Handle resizing.
+                if window_size.width != 0 && window_size.height != 0 {
+                    self.size = Some(PhysicalSize::new(window_size.width, window_size.height));
 
-                            pixels.resize_buffer(size.width, size.height)
-                                .expect("Failed to resize buffer");
-                            pixels.resize_surface(window_size.width, window_size.height)
-                                .expect("Failed to resize surface");
-                        }
-
-                        window.request_redraw()
-                    },
-                    WindowEvent::CloseRequested => {
-                        target.exit()
-                    }
-                    WindowEvent::RedrawRequested => {
-                        // Display the result using pixels.
-                        let frame = pixels.frame_mut();
-                
-                        for y in 0..size.height {
-                            for x in 0..size.width {
-                                let i = (y as usize * size.width as usize + x as usize) * 4;
-
-                                // Convert the X Y screen coordinates to an equirectangular
-                                // projection of the latitude and longitude.
-                                let latitude = (y as f64 / size.height as f64) * PI - PI / 2.0;
-                                let longitude = (x as f64 / size.width as f64) * PI * 2.0;
-
-                                // Gets the value stored at the latitude and longitude calculated.
-                                let (x, y, z) = buffer[RectangleSpherePoint::from_geographic(latitude, longitude)];
-
-                                frame[i + 0] = ((x + 1.0) / 2.0 * 255.0) as u8;
-                                frame[i + 1] = ((y + 1.0) / 2.0 * 255.0) as u8;
-                                frame[i + 2] = ((z + 1.0) / 2.0 * 255.0) as u8;
-                                frame[i + 3] = 255;
-                            }
-                        }
-
-                        // Render the pixels to the screen.
-                        pixels.render().expect("Failed to render");
-                    },
-                    _ => {}
+                    self.pixels.as_mut().unwrap().resize_buffer(self.size.as_ref().unwrap().width, self.size.as_ref().unwrap().height)
+                        .expect("Failed to resize buffer");
+                    self.pixels.as_mut().unwrap().resize_surface(window_size.width, window_size.height)
+                        .expect("Failed to resize surface");
                 }
+
+                self.window.as_ref().unwrap().request_redraw()
+            },
+            WindowEvent::CloseRequested => {
+                event_loop.exit()
+            },
+            WindowEvent::RedrawRequested => {
+                // Display the result using pixels.
+                let frame = self.pixels.as_mut().unwrap().frame_mut();
+        
+                for y in 0..self.size.as_ref().unwrap().height {
+                    for x in 0..self.size.as_ref().unwrap().width {
+                        let i = (y as usize * self.size.as_ref().unwrap().width as usize + x as usize) * 4;
+
+                        // Convert the X Y screen coordinates to an equirectangular
+                        // projection of the latitude and longitude.
+                        let latitude = (y as f64 / self.size.as_ref().unwrap().height as f64) * PI - PI / 2.0;
+                        let longitude = (x as f64 / self.size.as_ref().unwrap().width as f64) * PI * 2.0;
+
+                        let (x, y, z) = self.buffer[RectangleSpherePoint::from_geographic(latitude, longitude)];
+
+                        frame[i + 0] = ((x + 1.0) / 2.0 * 255.0) as u8;
+                        frame[i + 1] = ((y + 1.0) / 2.0 * 255.0) as u8;
+                        frame[i + 2] = ((z + 1.0) / 2.0 * 255.0) as u8;
+                        frame[i + 3] = 255;
+                    }
+                }
+
+                // Render the pixels to the screen.
+                self.pixels.as_ref().unwrap().render().expect("Failed to render");
             },
             _ => {}
         }
-    })?;
-
-    Ok(())
+    }
 }
 
+fn main() {
+    // This example uses winit with pixels to display the game.
+    let event_loop = EventLoop::new()
+        .expect("Failed to start event loop.");
+
+    let mut app = TestApp::new();
+
+    event_loop.run_app(&mut app)
+        .expect("Failed to run app.");
+}
 

@@ -258,8 +258,8 @@ impl <const W: usize, const H: usize> SpherePoint for RectangleSpherePoint<W, H>
             * ((y * H as f64) as i32).rem_euclid(H as i32)
             + H as i32 * (y.floor() as i32).rem_euclid(2)) as u32;
 
-        let y = if y == 100 {
-            99
+        let y = if y == H as u32 {
+            H as u32 - 1
         } else {
             y
         };
