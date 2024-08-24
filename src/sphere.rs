@@ -104,6 +104,11 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
             .par_bridge()
             .map(|(y, x)| RectangleSpherePoint::new(x as u32, y as u32))
     }
+
+    fn for_each(&mut self, mut f: impl FnMut(&mut T)) {
+        (0..H).cartesian_product(0..W)
+            .for_each(|(y, x)| f(&mut self.data[y][x]))
+    }
 }
 
 impl <T, const W: usize, const H: usize> Index<RectangleSpherePoint<W, H>> for RectangleSphereGrid<T, W, H> {
@@ -397,6 +402,18 @@ impl <T: Debug, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
             .cartesian_product(0..S)
             .par_bridge()
             .map(|((face, x), y)| CubeSpherePoint::new(face, x as u16, y as u16))
+    }
+
+    fn for_each(&mut self, mut f: impl FnMut(&mut T)) {
+        (0..S).cartesian_product(0..S)
+            .for_each(|(x, y)| {
+                f(&mut self.front[y][x]);
+                f(&mut self.back[y][x]);
+                f(&mut self.left[y][x]);
+                f(&mut self.right[y][x]);
+                f(&mut self.top[y][x]);
+                f(&mut self.bottom[y][x]);
+            })
     }
 }
 

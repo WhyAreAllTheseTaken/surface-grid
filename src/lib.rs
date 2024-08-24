@@ -321,6 +321,11 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
         })
     }
 
+    /// Calls a function for each element on this grid.
+    ///
+    /// - `f` - The function to apply.
+    fn for_each(&mut self, f: impl FnMut(&mut T));
+
     /// Iterates over the points in this grid and their values.
     fn iter<'a>(&'a self) -> impl Iterator<Item = (Self::Point, &'a T)> where T: 'a;
 
