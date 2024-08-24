@@ -1,8 +1,22 @@
+<a name="v0.4.0"></a>
+# [Surface Grid Version 0.4.0 (v0.4.0)](https://github.com/WhyAreAllTheseTaken/surface-grid/releases/tag/v0.4.0) - 24 Aug 2024
+
+## Features
+- Added a `for_each` method that can be used to mutate each cell.
+
+## Dependencies
+* Bump winit from 0.30.3 to 0.30.5 by [@dependabot](https://github.com/dependabot) in https://github.com/WhyAreAllTheseTaken/surface-grid/pull/13
+
+**Full Changelog**: https://github.com/WhyAreAllTheseTaken/surface-grid/compare/v0.3.2...v0.4.0
+
+[Changes][v0.4.0]
+
+
 <a name="v0.3.2"></a>
 # [Surface Grid Version 0.3.2 (v0.3.2)](https://github.com/WhyAreAllTheseTaken/surface-grid/releases/tag/v0.3.2) - 07 Jul 2024
 
 ## Fixes
-- Fixed a bug where `RectangleSpherePoint` would fail for Y values in excess of `100`.
+Fixed a bug where `RectangleSpherePoint` would fail for Y values in excess of `100`.
 
 ## Dependencies
 * Bump itertools from 0.12.0 to 0.12.1 by [@dependabot](https://github.com/dependabot) in https://github.com/WhyAreAllTheseTaken/surface-grid/pull/1
@@ -80,6 +94,7 @@ The initial release of Surface Grid.
 [Changes][v0.1.0]
 
 
+[v0.4.0]: https://github.com/WhyAreAllTheseTaken/surface-grid/compare/v0.3.2...v0.4.0
 [v0.3.2]: https://github.com/WhyAreAllTheseTaken/surface-grid/compare/v0.3.1...v0.3.2
 [v0.3.1]: https://github.com/WhyAreAllTheseTaken/surface-grid/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/WhyAreAllTheseTaken/surface-grid/compare/v0.2.0...v0.3.0
