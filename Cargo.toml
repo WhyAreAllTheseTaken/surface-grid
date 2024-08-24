@@ -1,6 +1,6 @@
 [package]
 name = "surface-grid"
-version = "0.3.2"
+version = "0.4.0"
 authors = [
     "WhyAreAllTheseTaken <48136416+WhyAreAllTheseTaken@users.noreply.github.com>"
 ]
