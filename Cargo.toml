@@ -29,7 +29,7 @@ rayon = "1.10.0"
 static-array = { version = "0.5.0", features = ["rayon"] }
 
 [dev-dependencies]
-pixels = "0.14.0"
+pixels = "0.15.0"
 winit = { version = "0.30.8", default-features = false, features = ["rwh_05", "x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"] }
 rand = "0.9.0"
 approx = "0.5.1"
