@@ -109,6 +109,29 @@ impl <T, const W: usize, const H: usize> SurfaceGrid<T> for RectangleSphereGrid<
         (0..H).cartesian_product(0..W)
             .for_each(|(y, x)| f(&mut self.data[y][x]))
     }
+
+    fn for_each_with_position(&mut self, mut f: impl FnMut(&Self::Point, &mut T)) {
+        (0..H).cartesian_product(0..W)
+            .for_each(|(y, x)| f(&RectangleSpherePoint::new(x as u32, y as u32), &mut self.data[y][x]))
+    }
+
+    fn par_for_each(&mut self, f: impl Fn(&mut T) + Sync) where T: Send + Sync {
+        self.data.iter_mut().par_bridge().for_each(|subarray| {
+            for x in 0..W {
+                f(&mut subarray[x]);
+            }
+        })
+    }
+
+    fn par_for_each_with_position(&mut self, f: impl Fn(&Self::Point, &mut T) + Sync) where T: Send + Sync {
+        self.data.iter_mut().enumerate().par_bridge().for_each(|(y, subarray)| {
+            for x in 0..W {
+                let point = RectangleSpherePoint::new(x as u32, y as u32);
+
+                f(&point, &mut subarray[x]);
+            }
+        })
+    }
 }
 
 impl <T, const W: usize, const H: usize> Index<RectangleSpherePoint<W, H>> for RectangleSphereGrid<T, W, H> {
@@ -414,6 +437,73 @@ impl <T: Debug, const S: usize> SurfaceGrid<T> for CubeSphereGrid<T, S> {
                 f(&mut self.top[y][x]);
                 f(&mut self.bottom[y][x]);
             })
+    }
+
+    fn for_each_with_position(&mut self, mut f: impl FnMut(&Self::Point, &mut T)) {
+        [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ].into_iter()
+            .cartesian_product(0..S)
+            .cartesian_product(0..S)
+            .for_each(|((face, x), y)| f(&CubeSpherePoint::new(face, x as u16, y as u16), match face {
+                CubeFace::Top => &mut self.top[y][x],
+                CubeFace::Left => &mut self.left[y][x],
+                CubeFace::Front => &mut self.front[y][x],
+                CubeFace::Right => &mut self.right[y][x],
+                CubeFace::Back => &mut self.back[y][x],
+                CubeFace::Bottom => &mut self.bottom[y][x],
+            }))
+    }
+    
+    fn par_for_each(&mut self, f: impl Fn(&mut T) + Sync) where T: Send + Sync{
+        for face in [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ] {
+            match face {
+                CubeFace::Front => &mut self.front,
+                CubeFace::Back => &mut self.back,
+                CubeFace::Left => &mut self.left,
+                CubeFace::Right => &mut self.right,
+                CubeFace::Top => &mut self.top,
+                CubeFace::Bottom => &mut self.bottom,
+            }.iter_mut().par_bridge().for_each(|subarray| for x in 0..S {
+                f(&mut subarray[x]);
+            });
+        }
+    }
+
+    fn par_for_each_with_position(&mut self, f: impl Fn(&Self::Point, &mut T) + Sync) where T: Send + Sync {
+        for face in [
+            CubeFace::Top,
+            CubeFace::Left,
+            CubeFace::Front,
+            CubeFace::Right,
+            CubeFace::Back,
+            CubeFace::Bottom,
+        ] {
+            match face {
+                CubeFace::Front => &mut self.front,
+                CubeFace::Back => &mut self.back,
+                CubeFace::Left => &mut self.left,
+                CubeFace::Right => &mut self.right,
+                CubeFace::Top => &mut self.top,
+                CubeFace::Bottom => &mut self.bottom,
+            }.iter_mut().enumerate().par_bridge().for_each(|(y, subarray)| for x in 0..S {
+                let point = CubeSpherePoint::new(face, x as u16, y as u16);
+
+                f(&point, &mut subarray[x]);
+            });
+        }
     }
 }
 
