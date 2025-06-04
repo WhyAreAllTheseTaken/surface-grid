@@ -325,6 +325,21 @@ pub trait SurfaceGrid<T> : IndexMut<Self::Point> + Index<Self::Point, Output = T
     ///
     /// - `f` - The function to apply.
     fn for_each(&mut self, f: impl FnMut(&mut T));
+    
+    /// Calls a function for each element on this grid with the position.
+    ///
+    /// - `f` - The function to apply.
+    fn for_each_with_position(&mut self, f: impl FnMut(&Self::Point, &mut T));
+    
+    /// Calls a function for each element on this grid in parallel.
+    ///
+    /// - `f` - The function to apply.
+    fn par_for_each(&mut self, f: impl Fn(&mut T) + Sync) where T: Send + Sync;
+    
+    /// Calls a function for each element on this grid with the position in parallel.
+    ///
+    /// - `f` - The function to apply.
+    fn par_for_each_with_position(&mut self, f: impl Fn(&Self::Point, &mut T) + Sync) where T: Send + Sync;
 
     /// Iterates over the points in this grid and their values.
     fn iter<'a>(&'a self) -> impl Iterator<Item = (Self::Point, &'a T)> where T: 'a;
