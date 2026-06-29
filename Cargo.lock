@@ -1536,9 +1536,9 @@ dependencies = [
 
 [[package]]
 name = "static-array"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c9374e1ca0d90b2c02b05e02d4190538608bff9a8017081fa3d93038f7034f2"
+checksum = "d3d9e868efe3a1ec54333d5cf477f7d0336063778f65758980d9e44378adc3ab"
 dependencies = [
  "rayon",
 ]
